@@ -19,6 +19,7 @@ from django.contrib import admin
 from django.urls import path
 from django.http import JsonResponse
 from .auth_views import signup, signin, signout
+from catalog.views import products_api
 
 def test_api(request):
     return JsonResponse({"message": "Successfully connected to Django backend!"})
@@ -29,4 +30,5 @@ urlpatterns = [
     path("api/auth/signup/", signup),
     path("api/auth/signin/", signin),
     path("api/auth/signout/", signout),
+    path("api/products/", products_api),
 ]

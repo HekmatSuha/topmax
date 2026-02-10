@@ -4,7 +4,6 @@ import ProductCard from './components/ProductCard';
 import Contact from './components/Contact';
 import Basket from './components/Basket';
 import Auth from './components/Auth';
-import { PRODUCTS } from './constants';
 import { Product, BasketItem, Language, User } from './types';
 import { translations } from './translations';
 
@@ -25,6 +24,9 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [backendStatus, setBackendStatus] = useState<string>('checking');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState('');
 
   const t = translations;
 
@@ -39,6 +41,20 @@ const App: React.FC = () => {
       .catch(err => {
         console.error('Backend connection failed:', err);
         setBackendStatus('failed');
+      });
+
+    fetch('http://localhost:8000/api/products/')
+      .then(res => res.json())
+      .then(data => {
+        setProducts(data.products || []);
+        setProductsError('');
+      })
+      .catch(err => {
+        console.error('Failed to load products:', err);
+        setProductsError('Failed to load products from backend.');
+      })
+      .finally(() => {
+        setIsProductsLoading(false);
       });
 
     // Check local storage for existing session
@@ -119,7 +135,7 @@ const App: React.FC = () => {
 
   const categoryKeys = ['All', 'Baths', 'Basins', 'Taps', 'Closets', 'Mirrors', 'Dryers', 'Others'];
   
-  const filteredProducts = PRODUCTS.filter(p => {
+  const filteredProducts = products.filter(p => {
     const matchesFilter = filter === 'All' || p.category === filter;
     const matchesSearch = 
       p.name[language].toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -199,7 +215,15 @@ const App: React.FC = () => {
               ))}
             </div>
 
-            {filteredProducts.length > 0 ? (
+            {isProductsLoading ? (
+              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 mb-20">
+                <p className="text-gray-400 text-xl font-medium">Loading products...</p>
+              </div>
+            ) : productsError ? (
+              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-red-200 mb-20">
+                <p className="text-red-500 text-xl font-medium">{productsError}</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-20">
                 {filteredProducts.map(product => (
                   <ProductCard 
