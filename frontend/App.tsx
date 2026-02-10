@@ -7,6 +7,8 @@ import Auth from './components/Auth';
 import { Product, BasketItem, Language, User } from './types';
 import { translations } from './translations';
 
+const BACKEND_BASE_URL = 'http://localhost:8000';
+
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('en');
   const [currentPage, setCurrentPage] = useState('home');
@@ -30,9 +32,16 @@ const App: React.FC = () => {
 
   const t = translations;
 
+  const resolveImageUrl = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/')) return `${BACKEND_BASE_URL}${url}`;
+    return `${BACKEND_BASE_URL}/${url}`;
+  };
+
   useEffect(() => {
     // Check backend connection
-    fetch('http://localhost:8000/api/test/')
+    fetch(`${BACKEND_BASE_URL}/api/test/`)
       .then(res => res.json())
       .then(data => {
         console.log('Backend connected:', data);
@@ -43,10 +52,14 @@ const App: React.FC = () => {
         setBackendStatus('failed');
       });
 
-    fetch('http://localhost:8000/api/products/')
+    fetch(`${BACKEND_BASE_URL}/api/products/`)
       .then(res => res.json())
       .then(data => {
-        setProducts(data.products || []);
+        const normalizedProducts = (data.products || []).map((product: Product) => ({
+          ...product,
+          imageUrls: (product.imageUrls || []).map(resolveImageUrl),
+        }));
+        setProducts(normalizedProducts);
         setProductsError('');
       })
       .catch(err => {
@@ -92,7 +105,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:8000/api/auth/signout/', {
+      await fetch(`${BACKEND_BASE_URL}/api/auth/signout/`, {
         method: 'POST',
         credentials: 'include',
       });
