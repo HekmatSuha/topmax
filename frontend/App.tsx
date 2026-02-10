@@ -74,9 +74,18 @@ const App: React.FC = () => {
     localStorage.setItem('topmax_user', JSON.stringify(u));
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('topmax_user');
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:8000/api/auth/signout/', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('Logout request failed:', err);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('topmax_user');
+    }
   };
 
   const toggleLike = (id: string) => {

@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.http import JsonResponse
+from .auth_views import signup, signin, signout
 
 def test_api(request):
     return JsonResponse({"message": "Successfully connected to Django backend!"})
@@ -25,4 +26,7 @@ def test_api(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/test/", test_api),
+    path("api/auth/signup/", signup),
+    path("api/auth/signin/", signin),
+    path("api/auth/signout/", signout),
 ]

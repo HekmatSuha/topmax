@@ -26,15 +26,38 @@ const BrandLogo: React.FC<{ className?: string }> = ({ className }) => (
 const Auth: React.FC<AuthProps> = ({ language, onAuthComplete, onCancel }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ email: '', password: '', name: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const t = translations;
+  const authEndpoint = isLogin
+    ? 'http://localhost:8000/api/auth/signin/'
+    : 'http://localhost:8000/api/auth/signup/';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAuthComplete({
-      name: formData.name || formData.email.split('@')[0],
-      email: formData.email,
-      isGuest: false
-    });
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(authEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed.');
+      }
+
+      onAuthComplete(data.user);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed.';
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGuest = () => {
@@ -60,13 +83,19 @@ const Auth: React.FC<AuthProps> = ({ language, onAuthComplete, onCancel }) => {
         <div className="p-8 sm:p-10">
           <div className="flex bg-gray-100 rounded-2xl p-1 mb-8">
             <button 
-              onClick={() => setIsLogin(true)}
+              onClick={() => {
+                setIsLogin(true);
+                setError('');
+              }}
               className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${isLogin ? 'bg-white text-blue-600 shadow-md scale-100' : 'text-slate-400 hover:text-slate-600'}`}
             >
               {t.login[language]}
             </button>
             <button 
-              onClick={() => setIsLogin(false)}
+              onClick={() => {
+                setIsLogin(false);
+                setError('');
+              }}
               className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${!isLogin ? 'bg-white text-blue-600 shadow-md scale-100' : 'text-slate-400 hover:text-slate-600'}`}
             >
               {t.signup[language]}
@@ -106,9 +135,15 @@ const Auth: React.FC<AuthProps> = ({ language, onAuthComplete, onCancel }) => {
                 onChange={e => setFormData({...formData, password: e.target.value})}
               />
             </div>
-            <button className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95">
-              {isLogin ? t.login[language] : t.signup[language]}
+            <button
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Please wait...' : isLogin ? t.login[language] : t.signup[language]}
             </button>
+            {error && (
+              <p className="text-sm font-semibold text-red-500 pt-1">{error}</p>
+            )}
           </form>
 
           <div className="relative my-8 text-center">
