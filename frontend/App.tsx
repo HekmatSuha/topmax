@@ -24,10 +24,23 @@ const App: React.FC = () => {
   // Auth state
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<string>('checking');
 
   const t = translations;
 
   useEffect(() => {
+    // Check backend connection
+    fetch('http://localhost:8000/api/test/')
+      .then(res => res.json())
+      .then(data => {
+        console.log('Backend connected:', data);
+        setBackendStatus('connected');
+      })
+      .catch(err => {
+        console.error('Backend connection failed:', err);
+        setBackendStatus('failed');
+      });
+
     // Check local storage for existing session
     const savedUser = localStorage.getItem('topmax_user');
     if (savedUser) {
@@ -231,6 +244,7 @@ const App: React.FC = () => {
         user={user}
         onLogout={handleLogout}
         onOpenAuth={() => setShowAuth(true)}
+        backendStatus={backendStatus}
       />
       
       <main className="flex-grow">

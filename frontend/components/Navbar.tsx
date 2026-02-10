@@ -12,6 +12,7 @@ interface NavbarProps {
   user: User | null;
   onLogout: () => void;
   onOpenAuth: () => void;
+  backendStatus: string;
 }
 
 const LogoMark: React.FC<{ className?: string }> = ({ className }) => (
@@ -22,7 +23,7 @@ const LogoMark: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, language, onLanguageChange, user, onLogout, onOpenAuth }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, language, onLanguageChange, user, onLogout, onOpenAuth, backendStatus }) => {
   const t = translations;
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -60,7 +61,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
             >
               <LogoMark className="w-16 h-8 text-slate-900 mr-3 group-hover:scale-110 transition-transform duration-300" />
               <div className="flex flex-col items-center -space-y-1.5">
-                <span className="text-xl font-black tracking-tighter text-slate-900 uppercase scale-x-110">TOP</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xl font-black tracking-tighter text-slate-900 uppercase scale-x-110">TOP</span>
+                  <div className={`w-2 h-2 rounded-full mt-1 ${
+                    backendStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 
+                    backendStatus === 'failed' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse'
+                  }`} title={`Backend: ${backendStatus}`} />
+                </div>
                 <span className="text-[10px] font-medium tracking-[0.4em] text-slate-600 uppercase">MAX</span>
               </div>
             </div>
