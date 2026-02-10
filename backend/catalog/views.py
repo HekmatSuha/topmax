@@ -4,7 +4,18 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from django.conf import settings
+
 from .models import Product
+
+
+def _resolve_image_url(url):
+    """Turn a bare filename into a full static path."""
+    if not url:
+        return url
+    if url.startswith(("http://", "https://", "/")):
+        return url
+    return f"{settings.STATIC_URL}products/{url}"
 
 
 def _product_payload(product):
@@ -15,7 +26,7 @@ def _product_payload(product):
         "category": product.category,
         "description": product.description,
         "price": product.price,
-        "imageUrls": product.image_urls,
+        "imageUrls": [_resolve_image_url(u) for u in product.image_urls],
         "availableColors": product.available_colors,
         "features": product.features,
         "dimensions": product.dimensions,

@@ -174,6 +174,7 @@ const App: React.FC = () => {
   const getColorHex = (colorKey: string) => {
     switch (colorKey) {
       case 'chrome': return 'linear-gradient(135deg, #f3f4f6, #9ca3af)';
+      case 'black': return '#1a1a1a';
       case 'matte_black': return '#1a1a1a';
       case 'brushed_gold': return '#d4af37';
       case 'rose_gold': return '#b76e79';
@@ -401,7 +402,7 @@ const App: React.FC = () => {
                             style={{ background: getColorHex(colorKey) }}
                           />
                           <span className={`text-[10px] font-black uppercase tracking-tighter ${selectedColor === colorKey ? 'text-blue-600' : 'text-slate-400'}`}>
-                             {t[colorKey][language]}
+                             {t[colorKey]?.[language] ?? colorKey}
                           </span>
                         </button>
                       ))}

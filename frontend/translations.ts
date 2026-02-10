@@ -63,5 +63,6 @@ export const translations: Record<string, Record<Language, string>> = {
   matte_black: { en: 'Black (Matte)', ru: 'Черный (Матовый)', kk: 'Қара (Күңгірт)' },
   brushed_gold: { en: 'Gold', ru: 'Золото', kk: 'Алтын' },
   rose_gold: { en: 'Rose Gold', ru: 'Розовое золото', kk: 'Қызғылт алтын' },
-  white: { en: 'White', ru: 'Белый', kk: 'Ақ' }
+  white: { en: 'White', ru: 'Белый', kk: 'Ақ' },
+  black: { en: 'Black', ru: 'Черный', kk: 'Қара' }
 };
