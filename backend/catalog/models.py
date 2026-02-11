@@ -22,6 +22,8 @@ class Product(models.Model):
     description = models.JSONField(default=dict)
     features = models.JSONField(default=dict)
 
+    warranty = models.JSONField(default=dict, blank=True)
+
     image_urls = models.JSONField(default=list)
     available_colors = models.JSONField(default=list, blank=True)
 
@@ -33,3 +35,20 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.item_code} - {self.name.get('en', 'Product')}"
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(upload_to="products/")
+    color = models.CharField(max_length=32, blank=True)
+    alt_text = models.CharField(max_length=255, blank=True)
+    is_primary = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"Image for {self.product.item_code} (order={self.sort_order})"

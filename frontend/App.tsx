@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import Contact from './components/Contact';
 import Basket from './components/Basket';
 import Auth from './components/Auth';
-import { Product, BasketItem, Language, User } from './types';
+import { Product, ProductImage, BasketItem, Language, User } from './types';
 import { translations } from './translations';
 
 const BACKEND_BASE_URL = 'http://localhost:8000';
@@ -58,6 +58,10 @@ const App: React.FC = () => {
         const normalizedProducts = (data.products || []).map((product: Product) => ({
           ...product,
           imageUrls: (product.imageUrls || []).map(resolveImageUrl),
+          images: (product.images || []).map((img: any) => ({
+            ...img,
+            url: resolveImageUrl(img.url),
+          })),
         }));
         setProducts(normalizedProducts);
         setProductsError('');
@@ -96,6 +100,24 @@ const App: React.FC = () => {
       document.body.style.overflow = 'unset';
     }
   }, [selectedProduct]);
+
+  // Compute visible image URLs based on selected color
+  const visibleImageUrls = useMemo(() => {
+    if (!selectedProduct) return [];
+    const structuredImages = selectedProduct.images || [];
+    // If a color is selected and there are structured images with color metadata, filter
+    if (selectedColor && structuredImages.length > 0) {
+      const colorFiltered = structuredImages.filter(
+        (img: ProductImage) => img.color === selectedColor || !img.color
+      );
+      if (colorFiltered.length > 0) {
+        return colorFiltered.map((img: ProductImage) => img.url);
+      }
+    }
+    // Fallback: all imageUrls (legacy + uploaded combined)
+    return selectedProduct.imageUrls;
+  }, [selectedProduct, selectedColor]);
+
 
   const handleAuthComplete = (u: User) => {
     setUser(u);
@@ -323,13 +345,13 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="relative bg-gray-50 flex flex-col items-center justify-center p-8 lg:p-12 border-r border-gray-100">
                  <div className="w-full h-[300px] lg:h-[450px] flex items-center justify-center mb-10">
-                    <img src={selectedProduct.imageUrls[activeImageIndex]} className="max-w-full max-h-full object-contain mix-blend-multiply transition-all duration-500" />
+                    <img src={visibleImageUrls[activeImageIndex] || selectedProduct.imageUrls[0]} className="max-w-full max-h-full object-contain mix-blend-multiply transition-all duration-500" />
                  </div>
-                 
-                 {selectedProduct.imageUrls.length > 1 && (
+
+                 {visibleImageUrls.length > 1 && (
                    <div className="flex gap-4 overflow-x-auto pb-4 px-2 max-w-full no-scrollbar">
-                      {selectedProduct.imageUrls.map((url, index) => (
-                        <button 
+                      {visibleImageUrls.map((url, index) => (
+                        <button
                           key={index}
                           onClick={() => setActiveImageIndex(index)}
                           className={`w-20 h-20 flex-shrink-0 rounded-2xl overflow-hidden border-2 transition-all ${
@@ -376,21 +398,23 @@ const App: React.FC = () => {
                            {feature}
                         </li>
                       ))}
-                      <li className="flex items-center gap-3 text-blue-600 text-sm font-bold">
-                         <span className="flex-shrink-0 w-6 h-6 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xs">🛡️</span>
-                         {t.warranty[language]}
-                      </li>
+                      {(selectedProduct.warranty?.[language] || t.warranty[language]) && (
+                        <li className="flex items-center gap-3 text-blue-600 text-sm font-bold">
+                           <span className="flex-shrink-0 w-6 h-6 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xs">🛡️</span>
+                           {selectedProduct.warranty?.[language] || t.warranty[language]}
+                        </li>
+                      )}
                    </ul>
                 </div>
 
-                {selectedProduct.availableColors && (
+                {selectedProduct.availableColors && selectedProduct.availableColors.length > 0 && (
                   <div className="mb-12">
                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">{t.selectFinish[language]}</h4>
                     <div className="flex flex-wrap gap-5">
                       {selectedProduct.availableColors.map(colorKey => (
                         <button
                           key={colorKey}
-                          onClick={() => setSelectedColor(colorKey)}
+                          onClick={() => { setSelectedColor(colorKey); setActiveImageIndex(0); }}
                           className={`group relative flex flex-col items-center gap-2 transition-all ${
                             selectedColor === colorKey ? 'scale-110' : 'opacity-60 hover:opacity-100 hover:scale-105'
                           }`}

@@ -13,20 +13,31 @@ export interface User {
   isGuest: boolean;
 }
 
+export interface ProductImage {
+  id: number;
+  url: string;
+  color?: string;
+  altText?: string;
+  isPrimary: boolean;
+  sortOrder: number;
+}
+
 export interface Product {
   id: string;
-  itemCode: string; 
+  itemCode: string;
   name: LocalizedString;
   category: 'Baths' | 'Taps' | 'Closets' | 'Mirrors' | 'Accessories' | 'Basins' | 'Dryers' | 'Others';
   description: LocalizedString;
   price: number;
-  imageUrls: string[]; 
-  availableColors?: string[]; 
+  imageUrls: string[];
+  availableColors?: string[];
+  images?: ProductImage[];
   features: {
     en: string[];
     ru: string[];
     kk: string[];
   };
+  warranty?: LocalizedString;
   dimensions?: string;
 }
 

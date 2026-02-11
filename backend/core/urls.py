@@ -17,9 +17,16 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 from django.http import JsonResponse
 from .auth_views import signup, signin, signout
-from catalog.views import products_api
+from catalog.views import (
+    products_api,
+    product_detail_api,
+    product_images_api,
+    product_image_detail_api,
+)
 
 def test_api(request):
     return JsonResponse({"message": "Successfully connected to Django backend!"})
@@ -31,4 +38,10 @@ urlpatterns = [
     path("api/auth/signin/", signin),
     path("api/auth/signout/", signout),
     path("api/products/", products_api),
+    path("api/products/<int:pk>/", product_detail_api),
+    path("api/products/<int:pk>/images/", product_images_api),
+    path("api/products/<int:pk>/images/<int:image_id>/", product_image_detail_api),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
