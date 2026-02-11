@@ -65,6 +65,13 @@ export const translations: Record<string, Record<Language, string>> = {
   rose_gold: { en: 'Rose Gold', ru: 'Розовое золото', kk: 'Қызғылт алтын' },
   white: { en: 'White', ru: 'Белый', kk: 'Ақ' },
   black: { en: 'Black', ru: 'Черный', kk: 'Қара' },
+  gold: { en: 'Gold', ru: 'Золото', kk: 'Алтын' },
+  'drawn-gold': { en: 'Drawn Gold', ru: 'Тянутое золото', kk: 'Тартылған алтын' },
+  'matte-chrome': { en: 'Matte Chrome', ru: 'Матовый хром', kk: 'Күңгірт хром' },
+  grey: { en: 'Grey', ru: 'Серый', kk: 'Сұр' },
+  gray: { en: 'Grey', ru: 'Серый', kk: 'Сұр' },
+  bronze: { en: 'Bronze', ru: 'Бронза', kk: 'Қола' },
+  nickel: { en: 'Nickel', ru: 'Никель', kk: 'Никель' },
   outOfStock: { en: 'Out of Stock', ru: 'Нет в наличии', kk: 'Қоймада жоқ' },
   inStock: { en: 'In Stock', ru: 'В наличии', kk: 'Қоймада бар' },
   sale: { en: 'Sale', ru: 'Скидка', kk: 'Жеңілдік' }

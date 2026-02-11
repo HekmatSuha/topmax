@@ -111,7 +111,13 @@ const App: React.FC = () => {
         (img: ProductImage) => img.color === selectedColor || !img.color
       );
       if (colorFiltered.length > 0) {
-        return colorFiltered.map((img: ProductImage) => img.url);
+        // Sort: primary images first, then by sortOrder
+        const sorted = [...colorFiltered].sort((a, b) => {
+          if (a.isPrimary && !b.isPrimary) return -1;
+          if (!a.isPrimary && b.isPrimary) return 1;
+          return a.sortOrder - b.sortOrder;
+        });
+        return sorted.map((img: ProductImage) => img.url);
       }
     }
     // Fallback: all imageUrls (legacy + uploaded combined)
@@ -193,17 +199,23 @@ const App: React.FC = () => {
     setShowBuyElseModal(true);
   };
 
-  const getColorHex = (colorKey: string) => {
-    switch (colorKey) {
-      case 'chrome': return 'linear-gradient(135deg, #f3f4f6, #9ca3af)';
-      case 'black': return '#1a1a1a';
-      case 'matte_black': return '#1a1a1a';
-      case 'brushed_gold': return '#d4af37';
-      case 'rose_gold': return '#b76e79';
-      case 'white': return '#ffffff';
-      default: return '#ccc';
-    }
+  const colorHexMap: Record<string, string> = {
+    black: '#1a1a1a',
+    matte_black: '#1a1a1a',
+    'matte-black': '#1a1a1a',
+    white: '#ffffff',
+    chrome: 'linear-gradient(135deg, #e5e7eb, #9ca3af)',
+    'matte-chrome': 'linear-gradient(135deg, #d1d5db, #6b7280)',
+    gold: 'linear-gradient(135deg, #fbbf24, #b8860b)',
+    brushed_gold: 'linear-gradient(135deg, #d4af37, #b8860b)',
+    'drawn-gold': 'linear-gradient(135deg, #d4af37, #96772e)',
+    rose_gold: 'linear-gradient(135deg, #e8b4b8, #b76e79)',
+    grey: '#9ca3af',
+    gray: '#9ca3af',
+    bronze: 'linear-gradient(135deg, #cd7f32, #8c5a2e)',
+    nickel: 'linear-gradient(135deg, #c0c0c0, #808080)',
   };
+  const getColorHex = (colorKey: string) => colorHexMap[colorKey] || '#ccc';
 
   const renderPage = () => {
     switch (currentPage) {
