@@ -74,5 +74,6 @@ export const translations: Record<string, Record<Language, string>> = {
   nickel: { en: 'Nickel', ru: 'Никель', kk: 'Никель' },
   outOfStock: { en: 'Out of Stock', ru: 'Нет в наличии', kk: 'Қоймада жоқ' },
   inStock: { en: 'In Stock', ru: 'В наличии', kk: 'Қоймада бар' },
-  sale: { en: 'Sale', ru: 'Скидка', kk: 'Жеңілдік' }
+  sale: { en: 'Sale', ru: 'Скидка', kk: 'Жеңілдік' },
+  new: { en: 'New', ru: 'Новинка', kk: 'Жаңа' }
 };

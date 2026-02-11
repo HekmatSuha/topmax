@@ -32,6 +32,7 @@ export interface Product {
   discountPercent: number;
   discountedPrice: number | null;
   inStock: boolean;
+  isNew: boolean;
   imageUrls: string[];
   availableColors?: string[];
   images?: ProductImage[];

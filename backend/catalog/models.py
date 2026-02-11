@@ -19,6 +19,7 @@ class Product(models.Model):
     discount_percent = models.PositiveIntegerField(default=0, help_text="0-100. Set to 0 for no discount.")
     dimensions = models.CharField(max_length=128, blank=True)
     in_stock = models.BooleanField(default=True)
+    is_new = models.BooleanField(default=False, help_text="Mark as new arrival.")
 
     name = models.JSONField(default=dict)
     description = models.JSONField(default=dict)

@@ -404,29 +404,16 @@ const App: React.FC = () => {
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.inStock[language]}</span>
                     </div>
                   )}
+                  {selectedProduct.isNew && (
+                    <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white px-3 py-1.5 rounded-lg shadow-sm">
+                      <span className="text-[10px] font-black uppercase tracking-widest">{t.new[language]}</span>
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-slate-500 text-sm font-light mb-6 leading-relaxed">
                   {selectedProduct.description[language]}
                 </p>
-
-                <div className="mb-6">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{t.keyFeatures[language]}</h4>
-                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6">
-                      {selectedProduct.features[language].map((feature, i) => (
-                        <li key={i} className="flex items-center gap-2 text-slate-700 text-xs font-bold">
-                           <span className="flex-shrink-0 w-5 h-5 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-[10px]">✓</span>
-                           {feature}
-                        </li>
-                      ))}
-                      {(selectedProduct.warranty?.[language] || t.warranty[language]) && (
-                        <li className="flex items-center gap-2 text-blue-600 text-xs font-bold">
-                           <span className="flex-shrink-0 w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-[10px]">🛡️</span>
-                           {selectedProduct.warranty?.[language] || t.warranty[language]}
-                        </li>
-                      )}
-                   </ul>
-                </div>
 
                 {selectedProduct.availableColors && selectedProduct.availableColors.length > 0 && (
                   <div className="mb-6">
@@ -454,6 +441,24 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                <div className="mb-6">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{t.keyFeatures[language]}</h4>
+                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6">
+                      {selectedProduct.features[language].map((feature, i) => (
+                        <li key={i} className="flex items-center gap-2 text-slate-700 text-xs font-bold">
+                           <span className="flex-shrink-0 w-5 h-5 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-[10px]">✓</span>
+                           {feature}
+                        </li>
+                      ))}
+                      {(selectedProduct.warranty?.[language] || t.warranty[language]) && (
+                        <li className="flex items-center gap-2 text-blue-600 text-xs font-bold">
+                           <span className="flex-shrink-0 w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-[10px]">🛡️</span>
+                           {selectedProduct.warranty?.[language] || t.warranty[language]}
+                        </li>
+                      )}
+                   </ul>
+                </div>
 
                 <div className="mt-auto pt-6 border-t border-gray-100">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

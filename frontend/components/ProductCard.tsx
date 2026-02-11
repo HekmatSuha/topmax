@@ -37,6 +37,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
               -{product.discountPercent}%
             </div>
           )}
+          {product.isNew && (
+            <div className="bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md">
+              {translations.new[language]}
+            </div>
+          )}
         </div>
 
         {/* Heart / Like Button */}
@@ -68,9 +73,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
       </div>
       <div className="p-6">
         <h3 className="text-xl font-bold text-slate-900 mb-0.5">{product.name[language]}</h3>
-        <span className="block text-[10px] font-black tracking-widest text-slate-400 uppercase mb-3">
+        <span className="block text-[10px] font-black tracking-widest text-slate-400 uppercase mb-1">
           CODE: {product.itemCode}
         </span>
+        {product.dimensions && (
+          <span className="block text-[11px] font-semibold text-slate-400 mb-3">
+            {product.dimensions}
+          </span>
+        )}
         <p className="text-slate-500 text-sm mb-4 line-clamp-2 leading-relaxed">
           {product.description[language]}
         </p>
