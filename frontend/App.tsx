@@ -343,19 +343,19 @@ const App: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2">
-              <div className="relative bg-gray-50 flex flex-col items-center justify-center p-8 lg:p-12 border-r border-gray-100">
-                 <div className="w-full h-[300px] lg:h-[450px] flex items-center justify-center mb-10">
+              <div className="relative bg-gray-50 flex flex-col items-center justify-center p-6 lg:p-8 border-r border-gray-100">
+                 <div className="w-full h-[250px] lg:h-[350px] flex items-center justify-center mb-6">
                     <img src={visibleImageUrls[activeImageIndex] || selectedProduct.imageUrls[0]} className="max-w-full max-h-full object-contain mix-blend-multiply transition-all duration-500" />
                  </div>
 
                  {visibleImageUrls.length > 1 && (
-                   <div className="flex gap-4 overflow-x-auto pb-4 px-2 max-w-full no-scrollbar">
+                   <div className="flex gap-3 overflow-x-auto pb-3 px-2 max-w-full no-scrollbar">
                       {visibleImageUrls.map((url, index) => (
                         <button
                           key={index}
                           onClick={() => setActiveImageIndex(index)}
-                          className={`w-20 h-20 flex-shrink-0 rounded-2xl overflow-hidden border-2 transition-all ${
-                            activeImageIndex === index ? 'border-blue-600 ring-4 ring-blue-50 scale-105 shadow-lg' : 'border-white opacity-60 hover:opacity-100 hover:scale-105'
+                          className={`w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                            activeImageIndex === index ? 'border-blue-600 ring-3 ring-blue-50 scale-105 shadow-md' : 'border-white opacity-60 hover:opacity-100 hover:scale-105'
                           }`}
                         >
                           <img src={url} className="w-full h-full object-cover" />
@@ -365,42 +365,51 @@ const App: React.FC = () => {
                  )}
               </div>
 
-              <div className="p-8 sm:p-14 flex flex-col justify-center bg-white">
-                <div className="mb-2">
-                  <span className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">ITEM CODE: {selectedProduct.itemCode}</span>
+              <div className="p-6 sm:p-8 flex flex-col justify-center bg-white">
+                <div className="mb-1">
+                  <span className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase">ITEM CODE: {selectedProduct.itemCode}</span>
                 </div>
-                <h2 className="text-3xl sm:text-5xl font-serif font-black text-slate-900 mb-6 leading-tight">
+                <h2 className="text-2xl sm:text-3xl font-serif font-black text-slate-900 mb-4 leading-tight">
                   {selectedProduct.name[language]}
                 </h2>
-                
-                <div className="flex flex-wrap gap-3 mb-8">
+
+                <div className="flex flex-wrap gap-2 mb-5">
                   {selectedProduct.dimensions && (
-                    <div className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl border border-slate-800 shadow-sm">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-                      <span className="text-xs font-black uppercase tracking-widest">{selectedProduct.dimensions}</span>
+                    <div className="inline-flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-lg border border-slate-800 shadow-sm">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{selectedProduct.dimensions}</span>
                     </div>
                   )}
-                  <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl border border-blue-100">
-                    <span className="text-xs font-black uppercase tracking-widest">★ {t.premiumQuality[language]}</span>
+                  <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100">
+                    <span className="text-[10px] font-black uppercase tracking-widest">★ {t.premiumQuality[language]}</span>
                   </div>
+                  {selectedProduct.inStock === false ? (
+                    <div className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100">
+                      <span className="text-[10px] font-black uppercase tracking-widest">{t.outOfStock[language]}</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1.5 rounded-lg border border-green-100">
+                      <span className="text-[10px] font-black uppercase tracking-widest">{t.inStock[language]}</span>
+                    </div>
+                  )}
                 </div>
 
-                <p className="text-slate-500 text-xl font-light mb-10 leading-relaxed">
+                <p className="text-slate-500 text-sm font-light mb-6 leading-relaxed">
                   {selectedProduct.description[language]}
                 </p>
 
-                <div className="mb-10">
-                   <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">{t.keyFeatures[language]}</h4>
-                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                <div className="mb-6">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{t.keyFeatures[language]}</h4>
+                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6">
                       {selectedProduct.features[language].map((feature, i) => (
-                        <li key={i} className="flex items-center gap-3 text-slate-700 text-sm font-bold">
-                           <span className="flex-shrink-0 w-6 h-6 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span>
+                        <li key={i} className="flex items-center gap-2 text-slate-700 text-xs font-bold">
+                           <span className="flex-shrink-0 w-5 h-5 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-[10px]">✓</span>
                            {feature}
                         </li>
                       ))}
                       {(selectedProduct.warranty?.[language] || t.warranty[language]) && (
-                        <li className="flex items-center gap-3 text-blue-600 text-sm font-bold">
-                           <span className="flex-shrink-0 w-6 h-6 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xs">🛡️</span>
+                        <li className="flex items-center gap-2 text-blue-600 text-xs font-bold">
+                           <span className="flex-shrink-0 w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-[10px]">🛡️</span>
                            {selectedProduct.warranty?.[language] || t.warranty[language]}
                         </li>
                       )}
@@ -408,24 +417,24 @@ const App: React.FC = () => {
                 </div>
 
                 {selectedProduct.availableColors && selectedProduct.availableColors.length > 0 && (
-                  <div className="mb-12">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">{t.selectFinish[language]}</h4>
-                    <div className="flex flex-wrap gap-5">
+                  <div className="mb-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{t.selectFinish[language]}</h4>
+                    <div className="flex flex-wrap gap-3">
                       {selectedProduct.availableColors.map(colorKey => (
                         <button
                           key={colorKey}
                           onClick={() => { setSelectedColor(colorKey); setActiveImageIndex(0); }}
-                          className={`group relative flex flex-col items-center gap-2 transition-all ${
+                          className={`group relative flex flex-col items-center gap-1.5 transition-all ${
                             selectedColor === colorKey ? 'scale-110' : 'opacity-60 hover:opacity-100 hover:scale-105'
                           }`}
                         >
-                          <div 
-                            className={`w-14 h-14 rounded-2xl border-4 transition-all shadow-md ${
-                              selectedColor === colorKey ? 'border-blue-600 ring-8 ring-blue-50 shadow-blue-100' : 'border-white'
+                          <div
+                            className={`w-10 h-10 rounded-xl border-3 transition-all shadow-sm ${
+                              selectedColor === colorKey ? 'border-blue-600 ring-4 ring-blue-50 shadow-blue-100' : 'border-white'
                             }`}
                             style={{ background: getColorHex(colorKey) }}
                           />
-                          <span className={`text-[10px] font-black uppercase tracking-tighter ${selectedColor === colorKey ? 'text-blue-600' : 'text-slate-400'}`}>
+                          <span className={`text-[9px] font-black uppercase tracking-tighter ${selectedColor === colorKey ? 'text-blue-600' : 'text-slate-400'}`}>
                              {t[colorKey]?.[language] ?? colorKey}
                           </span>
                         </button>
@@ -434,19 +443,25 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                <div className="mt-auto pt-10 border-t border-gray-100">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="mt-auto pt-6 border-t border-gray-100">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-center sm:text-left">
-                      <span className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Price</span>
-                      <span className="text-4xl sm:text-5xl font-serif font-black text-blue-600">{selectedProduct.price.toLocaleString()} ₸</span>
+                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Price</span>
+                      <span className="text-3xl sm:text-4xl font-serif font-black text-blue-600">{selectedProduct.price.toLocaleString()} ₸</span>
                     </div>
-                    <button 
-                      onClick={() => addToBasket(selectedProduct)}
-                      className="w-full sm:w-auto flex-grow bg-blue-600 text-white px-10 py-6 rounded-[2rem] font-black text-2xl hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100 flex items-center justify-center gap-4 active:scale-95"
-                    >
-                      <span className="text-2xl">🛒</span>
-                      {t.addToBasket[language]}
-                    </button>
+                    {selectedProduct.inStock === false ? (
+                      <div className="w-full sm:w-auto bg-gray-300 text-gray-500 px-8 py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 cursor-not-allowed">
+                        {t.outOfStock[language]}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => addToBasket(selectedProduct)}
+                        className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-base hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95"
+                      >
+                        <span className="text-lg">🛒</span>
+                        {t.addToBasket[language]}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

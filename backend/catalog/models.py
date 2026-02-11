@@ -17,6 +17,7 @@ class Product(models.Model):
     category = models.CharField(max_length=32, choices=CATEGORY_CHOICES)
     price = models.PositiveIntegerField()
     dimensions = models.CharField(max_length=128, blank=True)
+    in_stock = models.BooleanField(default=True)
 
     name = models.JSONField(default=dict)
     description = models.JSONField(default=dict)

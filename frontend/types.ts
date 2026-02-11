@@ -29,6 +29,7 @@ export interface Product {
   category: 'Baths' | 'Taps' | 'Closets' | 'Mirrors' | 'Accessories' | 'Basins' | 'Dryers' | 'Others';
   description: LocalizedString;
   price: number;
+  inStock: boolean;
   imageUrls: string[];
   availableColors?: string[];
   images?: ProductImage[];
