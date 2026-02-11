@@ -50,14 +50,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
             e.stopPropagation();
             onToggleLike?.();
           }}
-          className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-md shadow-lg ${
+          className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 ${
             isLiked
-              ? 'bg-red-500 text-white scale-110'
-              : 'bg-white/70 text-slate-400 hover:text-red-500 hover:bg-white hover:scale-110'
+              ? 'bg-red-500 text-white'
+              : 'bg-black/20 text-white/80 hover:text-red-400 hover:bg-black/30'
           }`}
         >
           <svg
-            className={`w-6 h-6 transition-transform duration-300 ${isLiked ? 'scale-110 fill-current' : 'fill-none'}`}
+            className={`w-4 h-4 transition-transform duration-300 ${isLiked ? 'fill-current' : 'fill-none'}`}
             stroke="currentColor"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
