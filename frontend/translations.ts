@@ -66,5 +66,6 @@ export const translations: Record<string, Record<Language, string>> = {
   white: { en: 'White', ru: 'Белый', kk: 'Ақ' },
   black: { en: 'Black', ru: 'Черный', kk: 'Қара' },
   outOfStock: { en: 'Out of Stock', ru: 'Нет в наличии', kk: 'Қоймада жоқ' },
-  inStock: { en: 'In Stock', ru: 'В наличии', kk: 'Қоймада бар' }
+  inStock: { en: 'In Stock', ru: 'В наличии', kk: 'Қоймада бар' },
+  sale: { en: 'Sale', ru: 'Скидка', kk: 'Жеңілдік' }
 };

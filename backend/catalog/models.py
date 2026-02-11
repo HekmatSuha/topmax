@@ -16,6 +16,7 @@ class Product(models.Model):
     item_code = models.CharField(max_length=64, unique=True)
     category = models.CharField(max_length=32, choices=CATEGORY_CHOICES)
     price = models.PositiveIntegerField()
+    discount_percent = models.PositiveIntegerField(default=0, help_text="0-100. Set to 0 for no discount.")
     dimensions = models.CharField(max_length=128, blank=True)
     in_stock = models.BooleanField(default=True)
 

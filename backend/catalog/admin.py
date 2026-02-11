@@ -41,7 +41,7 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            "item_code", "category", "price", "dimensions", "in_stock",
+            "item_code", "category", "price", "discount_percent", "dimensions", "in_stock",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -117,14 +117,14 @@ class ProductImageInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
-    list_display = ("item_code", "category", "price", "in_stock", "image_count", "updated_at")
+    list_display = ("item_code", "category", "price", "discount_percent", "in_stock", "image_count", "updated_at")
     search_fields = ("item_code", "category")
     list_filter = ("category", "in_stock")
     inlines = [ProductImageInline]
 
     fieldsets = (
         (None, {
-            "fields": ("item_code", "category", "price", "dimensions", "in_stock"),
+            "fields": ("item_code", "category", "price", "discount_percent", "dimensions", "in_stock"),
         }),
         ("Name", {
             "fields": ("name_en", "name_ru", "name_kk"),

@@ -447,7 +447,15 @@ const App: React.FC = () => {
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-center sm:text-left">
                       <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Price</span>
-                      <span className="text-3xl sm:text-4xl font-serif font-black text-blue-600">{selectedProduct.price.toLocaleString()} ₸</span>
+                      {selectedProduct.discountPercent > 0 && selectedProduct.discountedPrice != null ? (
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-lg sm:text-xl font-serif font-bold text-slate-400 line-through">{selectedProduct.price.toLocaleString()} ₸</span>
+                          <span className="text-3xl sm:text-4xl font-serif font-black text-red-500">{selectedProduct.discountedPrice.toLocaleString()} ₸</span>
+                          <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-md">-{selectedProduct.discountPercent}%</span>
+                        </div>
+                      ) : (
+                        <span className="text-3xl sm:text-4xl font-serif font-black text-blue-600">{selectedProduct.price.toLocaleString()} ₸</span>
+                      )}
                     </div>
                     {selectedProduct.inStock === false ? (
                       <div className="w-full sm:w-auto bg-gray-300 text-gray-500 px-8 py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 cursor-not-allowed">
