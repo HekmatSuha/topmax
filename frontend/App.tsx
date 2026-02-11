@@ -7,7 +7,7 @@ import Auth from './components/Auth';
 import { Product, ProductImage, BasketItem, Language, User } from './types';
 import { translations } from './translations';
 
-const BACKEND_BASE_URL = 'http://localhost:8000';
+const BACKEND_BASE_URL = import.meta.env.DEV ? 'http://localhost:8000' : '';
 
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('en');

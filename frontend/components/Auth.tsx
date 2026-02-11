@@ -29,9 +29,10 @@ const Auth: React.FC<AuthProps> = ({ language, onAuthComplete, onCancel }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const t = translations;
+  const baseUrl = import.meta.env.DEV ? 'http://localhost:8000' : '';
   const authEndpoint = isLogin
-    ? 'http://localhost:8000/api/auth/signin/'
-    : 'http://localhost:8000/api/auth/signup/';
+    ? `${baseUrl}/api/auth/signin/`
+    : `${baseUrl}/api/auth/signup/`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
