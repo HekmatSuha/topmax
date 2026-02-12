@@ -18,7 +18,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
 
   return (
     <div className={`group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 ${outOfStock ? 'opacity-75' : ''}`}>
-      <div className="relative h-64 overflow-hidden bg-gray-200">
+      <div className="relative aspect-[4/3] sm:h-64 sm:aspect-auto overflow-hidden bg-gray-100">
         <img
           src={product.imageUrls[0]}
           alt={product.name[language]}
