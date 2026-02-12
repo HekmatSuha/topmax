@@ -224,11 +224,8 @@ const App: React.FC = () => {
         return (
           <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
             <div className="mb-12 text-center">
-              <h1 className="text-3xl md:text-5xl font-serif font-black text-slate-900 mb-4 tracking-tight">
+              <p className="text-gray-500 text-lg mb-10">
                 {t.premiumCollections[language]}
-              </h1>
-              <p className="text-gray-500 max-w-xl mx-auto text-lg leading-relaxed mb-10">
-                {t.heroSubtitle[language]}
               </p>
               
               <div className="relative max-w-xl mx-auto mb-10">

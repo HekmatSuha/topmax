@@ -15,6 +15,10 @@ export const PRODUCTS: Product[] = [
       kk: 'Заманауи талғампаздық пен барынша жайлылық үшін жасалған сәнді акрилді ванна.'
     },
     price: 625000,
+    discountPercent: 0,
+    discountedPrice: null,
+    inStock: true,
+    isNew: false,
     imageUrls: [
       'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800',
       'https://images.unsplash.com/photo-1620626011761-9963d7521576?auto=format&fit=crop&q=80&w=800',
@@ -39,6 +43,10 @@ export const PRODUCTS: Product[] = [
       kk: 'Жоғары деңгейлі заманауи ванна бөлмелеріне арналған минималистік тас тектес керамикалық раковина.'
     },
     price: 95000,
+    discountPercent: 0,
+    discountedPrice: null,
+    inStock: true,
+    isNew: false,
     imageUrls: [
       'https://images.unsplash.com/photo-1620626011761-9963d7521576?auto=format&fit=crop&q=80&w=800',
       'https://images.unsplash.com/photo-1507652313519-d45ad717c731?auto=format&fit=crop&q=80&w=800'
@@ -62,6 +70,10 @@ export const PRODUCTS: Product[] = [
       kk: 'Керамикалық диск технологиясы бар хромдалған бір иінді раковина смесительі.'
     },
     price: 72500,
+    discountPercent: 0,
+    discountedPrice: null,
+    inStock: true,
+    isNew: false,
     imageUrls: [
       'https://images.unsplash.com/photo-1584107158582-1d00b702e307?auto=format&fit=crop&q=80&w=800',
       'https://images.unsplash.com/photo-1604709866599-019bb7fe3c2a?auto=format&fit=crop&q=80&w=800'
@@ -85,6 +97,10 @@ export const PRODUCTS: Product[] = [
       kk: 'Орынды үнемдейтін, жұмсақ жабылатын қақпағы бар Summit аспалы унитазы.'
     },
     price: 225000,
+    discountPercent: 0,
+    discountedPrice: null,
+    inStock: true,
+    isNew: false,
     imageUrls: [
       'https://images.unsplash.com/photo-1620626011761-9963d7521576?auto=format&fit=crop&q=80&w=800',
       'https://images.unsplash.com/photo-1585623011016-563f458e0a7b?auto=format&fit=crop&q=80&w=800'
@@ -108,6 +124,10 @@ export const PRODUCTS: Product[] = [
       kk: 'Тұманға қарсы технологиясы және сенсорлық басқаруы бар премиум жарықтандырылған ванна айнасы.'
     },
     price: 135000,
+    discountPercent: 0,
+    discountedPrice: null,
+    inStock: true,
+    isNew: false,
     imageUrls: [
       'https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80&w=800',
       'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800'
@@ -130,6 +150,10 @@ export const PRODUCTS: Product[] = [
       kk: 'Минималистік дизайны бар тот баспайтын болаттан жасалған электрлік кептіргіш.'
     },
     price: 85000,
+    discountPercent: 0,
+    discountedPrice: null,
+    inStock: true,
+    isNew: false,
     imageUrls: [
       'https://images.unsplash.com/photo-1584622781564-1d987f7333c1?auto=format&fit=crop&q=80&w=800'
     ],
@@ -152,6 +176,10 @@ export const PRODUCTS: Product[] = [
       kk: 'Мәрмәр тектес керамикалық сабын диспенсері мен стакан жинағы.'
     },
     price: 25000,
+    discountPercent: 0,
+    discountedPrice: null,
+    inStock: true,
+    isNew: false,
     imageUrls: [
       'https://images.unsplash.com/photo-1603533512480-7a98fa202f5a?auto=format&fit=crop&q=80&w=800'
     ],

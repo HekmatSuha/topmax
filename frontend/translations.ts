@@ -25,12 +25,7 @@ export const translations: Record<string, Record<Language, string>> = {
   passwordPlaceholder: { en: 'Password', ru: 'Пароль', kk: 'Құпия сөз' },
   namePlaceholder: { en: 'Full Name', ru: 'Имя и фамилия', kk: 'Аты-жөні' },
   logout: { en: 'Logout', ru: 'Выйти', kk: 'Шығу' },
-  premiumCollections: { en: 'Premium Bathroom Collection', ru: 'Коллекция сантехники', kk: 'Сантехника жинағы' },
-  heroSubtitle: { 
-    en: 'Easy shopping for beautiful bathrooms. Choose your items and we will help you with everything else.',
-    ru: 'Простые покупки для красивых ванных комнат. Выбирайте товары, а мы поможем со всем остальным.',
-    kk: 'Әдемі ванна бөлмелері үшін оңай сатып алу. Тауарларды таңдаңыз, қалғанына біз көмектесеміз.'
-  },
+  premiumCollections: { en: 'Your one-stop shop for premium sanitary ware.', ru: 'Всё для вашей ванной комнаты в одном месте.', kk: 'Сантехниканың барлығы бір жерде.' },
   all: { en: 'All Items', ru: 'Все товары', kk: 'Барлық тауарлар' },
   details: { en: 'View Details', ru: 'Посмотреть', kk: 'Көру' },
   addToBasket: { en: 'Put in Basket', ru: 'Положить в корзину', kk: 'Себетке салу' },
