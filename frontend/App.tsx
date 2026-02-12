@@ -4,6 +4,7 @@ import ProductCard from './components/ProductCard';
 import Contact from './components/Contact';
 import Basket from './components/Basket';
 import Auth from './components/Auth';
+import BottomNav from './components/BottomNav';
 import { Product, ProductImage, BasketItem, Language, User } from './types';
 import { translations } from './translations';
 
@@ -331,6 +332,13 @@ const App: React.FC = () => {
       <main className="flex-grow">
         {renderPage()}
       </main>
+
+      <BottomNav
+        currentPage={currentPage}
+        onNavigate={setCurrentPage}
+        basketCount={basket.reduce((a, b) => a + b.quantity, 0)}
+        language={language}
+      />
 
       {showAuth && (
         <Auth language={language} onAuthComplete={handleAuthComplete} onCancel={() => setShowAuth(false)} />

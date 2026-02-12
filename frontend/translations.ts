@@ -2,6 +2,7 @@
 import { Language } from './types';
 
 export const translations: Record<string, Record<Language, string>> = {
+  home: { en: 'Home', ru: 'Главная', kk: 'Басты бет' },
   catalog: { en: 'Browse Products', ru: 'Наши товары', kk: 'Біздің тауарлар' },
   contact: { en: 'Contact Us', ru: 'Контакты', kk: 'Байланыс' },
   contactSubtitle: { 
