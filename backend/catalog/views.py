@@ -16,12 +16,12 @@ VALID_CATEGORIES = {c[0] for c in Product.CATEGORY_CHOICES}
 
 
 def _resolve_image_url(url):
-    """Turn a bare filename into a full static path."""
+    """Turn a bare filename into a full media path."""
     if not url:
         return url
     if url.startswith(("http://", "https://", "/")):
         return url
-    return f"{settings.STATIC_URL}products/{url}"
+    return f"{settings.MEDIA_URL}products/{url}"
 
 
 def _image_payload(img):
