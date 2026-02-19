@@ -54,7 +54,7 @@ def _product_payload(product):
         "discountedPrice": round(product.price * (100 - product.discount_percent) / 100) if product.discount_percent else None,
         "inStock": product.in_stock,
         "isNew": product.is_new,
-        "imageUrls": legacy_urls + uploaded_urls,
+        "imageUrls": uploaded_urls + legacy_urls if not uploaded_urls else uploaded_urls,
         "availableColors": product.available_colors,
         "features": product.features,
         "warranty": product.warranty,
