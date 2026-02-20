@@ -1,7 +1,7 @@
 
 import { Product, DeploymentStep } from './types';
 
-export const COMPANY_PHONE = "77000000000";
+export const COMPANY_PHONE = "77082323274";
 
 export const PRODUCTS: Product[] = [
   {
