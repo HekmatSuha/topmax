@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product, Language } from '../types';
 import { translations } from '../translations';
@@ -15,18 +14,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
   const outOfStock = product.inStock === false;
   const hasDiscount = product.discountPercent > 0 && product.discountedPrice != null;
   const displayPrice = hasDiscount ? product.discountedPrice! : product.price;
+  const productName = product.name[language] || product.name.en;
+  const productDescription = product.description[language] || product.description.en;
+  const productImage = product.imageUrls[0];
+  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} KZT`;
 
   return (
     <div className={`group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 ${outOfStock ? 'opacity-75' : ''}`}>
       <div className="relative aspect-[4/3] sm:h-64 sm:aspect-auto overflow-hidden bg-gray-100">
         <img
-          src={product.imageUrls[0]}
-          alt={product.name[language]}
+          src={productImage}
+          alt={productName}
           className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${outOfStock ? 'grayscale-[40%]' : ''}`}
         />
 
-        {/* Badges — top left */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
+        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-col gap-2">
           {outOfStock && (
             <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md">
               {translations.outOfStock[language]}
@@ -44,13 +46,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
           )}
         </div>
 
-        {/* Heart / Like Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleLike?.();
           }}
-          className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 ${
+          aria-label={isLiked ? 'Remove from favorites' : 'Add to favorites'}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
             isLiked
               ? 'bg-red-500 text-white'
               : 'bg-black/20 text-white/80 hover:text-red-400 hover:bg-black/30'
@@ -71,8 +73,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
           </svg>
         </button>
       </div>
-      <div className="p-6">
-        <h3 className="text-xl font-bold text-slate-900 mb-0.5">{product.name[language]}</h3>
+
+      <div className="p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-0.5 leading-snug line-clamp-2">
+          {productName}
+        </h3>
         <span className="block text-[10px] font-black tracking-widest text-slate-400 uppercase mb-1">
           CODE: {product.itemCode}
         </span>
@@ -81,23 +86,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
             {product.dimensions}
           </span>
         )}
-        <p className="text-slate-500 text-sm mb-4 line-clamp-2 leading-relaxed">
-          {product.description[language]}
+        <p className="text-slate-500 text-sm mb-4 line-clamp-2 leading-relaxed min-h-[2.75rem]">
+          {productDescription}
         </p>
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex items-baseline gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto">
+          <div className="flex flex-wrap items-baseline gap-2 min-w-0">
             {hasDiscount && (
               <span className="text-sm font-serif font-bold text-slate-400 line-through">
-                {product.price.toLocaleString()} ₸
+                {formatPrice(product.price)}
               </span>
             )}
-            <span className={`text-xl font-serif font-black ${hasDiscount ? 'text-red-500' : 'text-blue-600'}`}>
-              {displayPrice.toLocaleString()} ₸
+            <span className={`text-xl font-serif font-black break-words ${hasDiscount ? 'text-red-500' : 'text-blue-600'}`}>
+              {formatPrice(displayPrice)}
             </span>
           </div>
           <button
             onClick={() => onInquire(product)}
-            className="text-sm font-semibold text-white bg-slate-900 px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            className="w-full sm:w-auto text-sm font-semibold text-white bg-slate-900 px-4 py-2.5 sm:py-2 rounded-lg hover:bg-blue-600 transition-colors"
           >
             {translations.details[language]}
           </button>
