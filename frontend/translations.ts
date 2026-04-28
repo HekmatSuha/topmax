@@ -13,7 +13,7 @@ export const translations: Record<string, Record<Language, string>> = {
   addressLabel: { en: 'Address', ru: 'Адрес', kk: 'Мекен-жайы' },
   addressValue: { en: '93A Ryskulov St, Almaty, Kazakhstan', ru: 'ул. Рыскулова 93А, Алматы, Казахстан', kk: 'Рысқұлов көшесі 93А, Алматы, Қазақстан' },
   workingHoursLabel: { en: 'Working Hours', ru: 'График работы', kk: 'Жұмыс уақыты' },
-  workingHoursValue: { en: 'Mon - Sun: 10:00 - 20:00', ru: 'Пн - Вс: 10:00 - 20:00', kk: 'Дүй - Жек: 10:00 - 20:00' },
+  workingHoursValue: { en: 'Tuesday - Sunday: 08:00 - 18:00', ru: 'Вт - Вс: 08:00 - 18:00', kk: 'Сей - Жек: 08:00 - 18:00' },
   emailLabel: { en: 'Email Support', ru: 'Электронная почта', kk: 'Электрондық пошта' },
   whatsappLabel: { en: 'WhatsApp', ru: 'WhatsApp', kk: 'WhatsApp' },
   login: { en: 'Sign In', ru: 'Войти', kk: 'Кіру' },
