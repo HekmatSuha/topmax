@@ -35,16 +35,16 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
     { label: t.contact[language], id: 'contact' },
   ];
 
-  const flags: Record<Language, string> = {
+  const languageCodes: Record<Language, string> = {
     en: 'EN',
-    ru: 'RU',
-    kk: 'KK',
+    ru: 'РУ',
+    kk: 'ҚАЗ',
   };
 
   const languageLabels: Record<Language, string> = {
     en: 'English',
-    ru: 'Russian',
-    kk: 'Kazakh',
+    ru: 'Русский',
+    kk: 'Қазақша',
   };
 
   // Close dropdown when clicking outside
@@ -109,7 +109,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
                   isLanguageOpen ? 'ring-4 ring-blue-500/10 bg-slate-200' : ''
                 }`}
               >
-                <span className="text-xs font-black text-slate-900 uppercase">{flags[language]}</span>
+                <span className="text-xs font-black text-slate-900 uppercase">{languageCodes[language]}</span>
                 <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isLanguageOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -138,7 +138,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
                         }`}
                       >
                         <span>{languageLabels[lang]}</span>
-                        <span className="text-[10px] font-black uppercase">{flags[lang]}</span>
+                        <span className="text-[10px] font-black uppercase">{languageCodes[lang]}</span>
                       </button>
                     ))}
                   </div>
