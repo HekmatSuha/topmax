@@ -9,11 +9,18 @@ import { Product, ProductImage, BasketItem, Language, User } from './types';
 import { translations } from './translations';
 
 const BACKEND_BASE_URL = import.meta.env.DEV ? 'http://localhost:8000' : '';
+const PLACEHOLDER_IMAGE =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"%3E%3Crect width="640" height="480" fill="%23f1f5f9"/%3E%3Cpath d="M160 336h320L384 224l-72 80-48-56-104 88Z" fill="%23cbd5e1"/%3E%3Ccircle cx="240" cy="176" r="40" fill="%23cbd5e1"/%3E%3C/svg%3E';
+
+type CategoryKey = Product['category'] | 'All';
+type PageKey = 'home' | 'contact' | 'basket';
+
+const normalizeColorKey = (colorKey: string) => colorKey.trim().toLowerCase().replace(/\s+/g, '-');
 
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('en');
-  const [currentPage, setCurrentPage] = useState('home');
-  const [filter, setFilter] = useState('All');
+  const [currentPage, setCurrentPage] = useState<PageKey>('home');
+  const [filter, setFilter] = useState<CategoryKey>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -33,6 +40,12 @@ const App: React.FC = () => {
 
   const t = translations;
 
+  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} KZT`;
+  const getLocalizedText = (
+    value: Partial<Record<Language, string>> | undefined,
+    fallback = ''
+  ) => value?.[language] || value?.en || fallback;
+
   const resolveImageUrl = (url: string) => {
     if (!url) return url;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -43,7 +56,10 @@ const App: React.FC = () => {
   useEffect(() => {
     // Check backend connection
     fetch(`${BACKEND_BASE_URL}/api/test/`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Backend health check failed: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         console.log('Backend connected:', data);
         setBackendStatus('connected');
@@ -54,14 +70,21 @@ const App: React.FC = () => {
       });
 
     fetch(`${BACKEND_BASE_URL}/api/products/`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Products request failed: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         const normalizedProducts = (data.products || []).map((product: Product) => ({
           ...product,
-          imageUrls: (product.imageUrls || []).map(resolveImageUrl),
-          images: (product.images || []).map((img: any) => ({
+          description: product.description || { en: '', ru: '', kk: '' },
+          features: product.features || { en: [], ru: [], kk: [] },
+          imageUrls: (product.imageUrls || []).map(resolveImageUrl).filter(Boolean),
+          availableColors: (product.availableColors || []).map(normalizeColorKey),
+          images: (product.images || []).map((img: ProductImage) => ({
             ...img,
             url: resolveImageUrl(img.url),
+            color: img.color ? normalizeColorKey(img.color) : img.color,
           })),
         }));
         setProducts(normalizedProducts);
@@ -76,13 +99,19 @@ const App: React.FC = () => {
       });
 
     // Check local storage for existing session
-    const savedUser = localStorage.getItem('topmax_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    const savedLikes = localStorage.getItem('topmax_likes');
-    if (savedLikes) {
-      setLikedIds(JSON.parse(savedLikes));
+    try {
+      const savedUser = localStorage.getItem('topmax_user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+      const savedLikes = localStorage.getItem('topmax_likes');
+      if (savedLikes) {
+        setLikedIds(JSON.parse(savedLikes));
+      }
+    } catch (err) {
+      console.error('Failed to restore saved user data:', err);
+      localStorage.removeItem('topmax_user');
+      localStorage.removeItem('topmax_likes');
     }
   }, []);
 
@@ -122,7 +151,7 @@ const App: React.FC = () => {
       }
     }
     // Fallback: all imageUrls (legacy + uploaded combined)
-    return selectedProduct.imageUrls;
+    return selectedProduct.imageUrls.length > 0 ? selectedProduct.imageUrls : [PLACEHOLDER_IMAGE];
   }, [selectedProduct, selectedColor]);
 
 
@@ -150,22 +179,54 @@ const App: React.FC = () => {
     setLikedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+  const handleNavigate = (page: string) => {
+    if (page === 'home' || page === 'contact' || page === 'basket') {
+      setCurrentPage(page);
+    }
+  };
+
   const renderCategoryIcon = (key: string, isActive: boolean) => {
     const colorClass = isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-600';
     
     switch (key) {
-      case 'All': return <span className="text-lg">✨</span>;
-      case 'Baths': return <span className="text-lg">🛁</span>;
+      case 'All': return (
+        <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l1.9 5.9L20 11l-6.1 2.1L12 19l-1.9-5.9L4 11l6.1-2.1L12 3z" />
+        </svg>
+      );
+      case 'Baths': return (
+        <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 10h14v3a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6v-3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 10h16M7 19l-1 2m11-2 1 2M8 10V6a2 2 0 0 1 2-2h1" />
+        </svg>
+      );
       case 'Basins': return (
         <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 11a8 8 0 0 0 16 0H4z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v3m-3 0h6" />
         </svg>
       );
-      case 'Taps': return <span className="text-lg">🚰</span>;
-      case 'Closets': return <span className="text-lg">🚽</span>;
-      case 'Mirrors': return <span className="text-lg">🪞</span>;
-      case 'Dryers': return <span className="text-lg">🧣</span>;
+      case 'Taps': return (
+        <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8m-4 0v4m-5 4h10a3 3 0 0 0 3-3v-1h-8m0 0H5v1a3 3 0 0 0 3 3z" />
+        </svg>
+      );
+      case 'Closets': return (
+        <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 4h8v7a4 4 0 0 1-4 4 4 4 0 0 1-4-4V4zM6 15h12v2a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-2z" />
+        </svg>
+      );
+      case 'Mirrors': return (
+        <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6" />
+        </svg>
+      );
+      case 'Dryers': return (
+        <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 5h12M8 9h8M7 13h10M9 17h6" />
+        </svg>
+      );
       case 'Others': return (
         <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -175,13 +236,16 @@ const App: React.FC = () => {
     }
   };
 
-  const categoryKeys = ['All', 'Baths', 'Basins', 'Taps', 'Closets', 'Mirrors', 'Dryers', 'Others'];
+  const categoryKeys: CategoryKey[] = ['All', 'Baths', 'Basins', 'Taps', 'Closets', 'Mirrors', 'Dryers', 'Others'];
   
   const filteredProducts = products.filter(p => {
     const matchesFilter = filter === 'All' || p.category === filter;
+    const productName = getLocalizedText(p.name).toLowerCase();
+    const productDescription = getLocalizedText(p.description).toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
     const matchesSearch = 
-      p.name[language].toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.description[language].toLowerCase().includes(searchQuery.toLowerCase());
+      productName.includes(query) ||
+      productDescription.includes(query);
     return matchesFilter && matchesSearch;
   });
 
@@ -216,7 +280,7 @@ const App: React.FC = () => {
     bronze: 'linear-gradient(135deg, #cd7f32, #8c5a2e)',
     nickel: 'linear-gradient(135deg, #c0c0c0, #808080)',
   };
-  const getColorHex = (colorKey: string) => colorHexMap[colorKey] || '#ccc';
+  const getColorHex = (colorKey: string) => colorHexMap[normalizeColorKey(colorKey)] || '#ccc';
 
   const renderPage = () => {
     switch (currentPage) {
@@ -315,7 +379,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/50">
       <Navbar 
-        onNavigate={setCurrentPage} 
+        onNavigate={handleNavigate} 
         currentPage={currentPage} 
         basketCount={basket.reduce((a, b) => a + b.quantity, 0)} 
         language={language}
@@ -332,7 +396,7 @@ const App: React.FC = () => {
 
       <BottomNav
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
+        onNavigate={handleNavigate}
         basketCount={basket.reduce((a, b) => a + b.quantity, 0)}
         language={language}
       />
@@ -362,7 +426,11 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="relative bg-gray-50 flex flex-col items-center justify-center p-6 lg:p-8 border-r border-gray-100">
                  <div className="w-full h-[250px] lg:h-[350px] flex items-center justify-center mb-6">
-                    <img src={visibleImageUrls[activeImageIndex] || selectedProduct.imageUrls[0]} className="max-w-full max-h-full object-contain mix-blend-multiply transition-all duration-500" />
+                    <img
+                      src={visibleImageUrls[activeImageIndex] || PLACEHOLDER_IMAGE}
+                      alt={getLocalizedText(selectedProduct.name, selectedProduct.itemCode)}
+                      className="max-w-full max-h-full object-contain mix-blend-multiply transition-all duration-500"
+                    />
                  </div>
 
                  {visibleImageUrls.length > 1 && (
@@ -375,7 +443,7 @@ const App: React.FC = () => {
                             activeImageIndex === index ? 'border-blue-600 ring-3 ring-blue-50 scale-105 shadow-md' : 'border-white opacity-60 hover:opacity-100 hover:scale-105'
                           }`}
                         >
-                          <img src={url} className="w-full h-full object-cover" />
+                          <img src={url} alt="" className="w-full h-full object-cover" />
                         </button>
                       ))}
                    </div>
@@ -398,7 +466,7 @@ const App: React.FC = () => {
                     </div>
                   )}
                   <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100">
-                    <span className="text-[10px] font-black uppercase tracking-widest">★ {t.premiumQuality[language]}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{t.premiumQuality[language]}</span>
                   </div>
                   {selectedProduct.inStock === false ? (
                     <div className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100">
@@ -417,7 +485,7 @@ const App: React.FC = () => {
                 </div>
 
                 <p className="text-slate-500 text-sm font-light mb-6 leading-relaxed">
-                  {selectedProduct.description[language]}
+                  {getLocalizedText(selectedProduct.description, t.premiumQuality[language])}
                 </p>
 
                 {selectedProduct.availableColors && selectedProduct.availableColors.length > 0 && (
@@ -439,7 +507,7 @@ const App: React.FC = () => {
                             style={{ background: getColorHex(colorKey) }}
                           />
                           <span className={`text-[9px] font-black uppercase tracking-tighter ${selectedColor === colorKey ? 'text-blue-600' : 'text-slate-400'}`}>
-                             {t[colorKey]?.[language] ?? colorKey}
+                             {t[normalizeColorKey(colorKey)]?.[language] ?? colorKey}
                           </span>
                         </button>
                       ))}
@@ -450,15 +518,23 @@ const App: React.FC = () => {
                 <div className="mb-6">
                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{t.keyFeatures[language]}</h4>
                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6">
-                      {selectedProduct.features[language].map((feature, i) => (
+                      {(selectedProduct.features?.[language] || selectedProduct.features?.en || []).map((feature, i) => (
                         <li key={i} className="flex items-center gap-2 text-slate-700 text-xs font-bold">
-                           <span className="flex-shrink-0 w-5 h-5 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-[10px]">✓</span>
+                           <span className="flex-shrink-0 w-5 h-5 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-[10px]">
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                             </svg>
+                           </span>
                            {feature}
                         </li>
                       ))}
                       {(selectedProduct.warranty?.[language] || t.warranty[language]) && (
                         <li className="flex items-center gap-2 text-blue-600 text-xs font-bold">
-                           <span className="flex-shrink-0 w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-[10px]">🛡️</span>
+                           <span className="flex-shrink-0 w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-[10px]">
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" />
+                             </svg>
+                           </span>
                            {selectedProduct.warranty?.[language] || t.warranty[language]}
                         </li>
                       )}
@@ -471,12 +547,12 @@ const App: React.FC = () => {
                       <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Price</span>
                       {selectedProduct.discountPercent > 0 && selectedProduct.discountedPrice != null ? (
                         <div className="flex items-baseline gap-3">
-                          <span className="text-lg sm:text-xl font-serif font-bold text-slate-400 line-through">{selectedProduct.price.toLocaleString()} ₸</span>
-                          <span className="text-3xl sm:text-4xl font-serif font-black text-red-500">{selectedProduct.discountedPrice.toLocaleString()} ₸</span>
+                          <span className="text-lg sm:text-xl font-serif font-bold text-slate-400 line-through">{formatPrice(selectedProduct.price)}</span>
+                          <span className="text-3xl sm:text-4xl font-serif font-black text-red-500">{formatPrice(selectedProduct.discountedPrice)}</span>
                           <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-md">-{selectedProduct.discountPercent}%</span>
                         </div>
                       ) : (
-                        <span className="text-3xl sm:text-4xl font-serif font-black text-blue-600">{selectedProduct.price.toLocaleString()} ₸</span>
+                        <span className="text-3xl sm:text-4xl font-serif font-black text-blue-600">{formatPrice(selectedProduct.price)}</span>
                       )}
                     </div>
                     {selectedProduct.inStock === false ? (
@@ -488,7 +564,9 @@ const App: React.FC = () => {
                         onClick={() => addToBasket(selectedProduct)}
                         className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-base hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95"
                       >
-                        <span className="text-lg">🛒</span>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
                         {t.addToBasket[language]}
                       </button>
                     )}
@@ -505,7 +583,9 @@ const App: React.FC = () => {
           <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-md" onClick={() => setShowBuyElseModal(false)}></div>
           <div className="relative bg-white rounded-[3rem] max-w-md w-full p-12 shadow-2xl text-center">
             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
-               <span className="text-4xl">✅</span>
+               <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+               </svg>
             </div>
             <h2 className="text-3xl font-serif font-black text-slate-900 mb-4">{t.addedToBasket[language]}</h2>
             <p className="text-slate-500 text-xl mb-10 font-medium leading-relaxed">{t.buyElsePrompt[language]}</p>
