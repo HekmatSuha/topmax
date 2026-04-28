@@ -11,7 +11,7 @@ export const translations: Record<string, Record<Language, string>> = {
     kk: 'Сұрақтарыңыз бар ма? Біздің мамандар сізге арманыңыздағы ваннаны жасауға көмектеседі.'
   },
   addressLabel: { en: 'Address', ru: 'Адрес', kk: 'Мекен-жайы' },
-  addressValue: { en: '123 Luxury Ave, Almaty, Kazakhstan', ru: 'пр. Роскоши 123, Алматы, Казахстан', kk: 'Сән даңғылы 123, Алматы, Қазақстан' },
+  addressValue: { en: '93A Ryskulov St, Almaty, Kazakhstan', ru: 'ул. Рыскулова 93А, Алматы, Казахстан', kk: 'Рысқұлов көшесі 93А, Алматы, Қазақстан' },
   workingHoursLabel: { en: 'Working Hours', ru: 'График работы', kk: 'Жұмыс уақыты' },
   workingHoursValue: { en: 'Mon - Sun: 10:00 - 20:00', ru: 'Пн - Вс: 10:00 - 20:00', kk: 'Дүй - Жек: 10:00 - 20:00' },
   emailLabel: { en: 'Email Support', ru: 'Электронная почта', kk: 'Электрондық пошта' },

@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useRef, useEffect } from 'react';
 import { Language, User } from '../types';
 import { translations } from '../translations';
@@ -26,17 +26,25 @@ const LogoMark: React.FC<{ className?: string }> = ({ className }) => (
 const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, language, onLanguageChange, user, onLogout, onOpenAuth, backendStatus }) => {
   const t = translations;
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const languageDropdownRef = useRef<HTMLDivElement>(null);
 
   const navItems = [
     { label: t.catalog[language], id: 'home' },
     { label: t.contact[language], id: 'contact' },
   ];
 
-  const flags = {
-    en: '🇺🇸',
-    ru: '🇷🇺',
-    kk: '🇰🇿'
+  const flags: Record<Language, string> = {
+    en: 'EN',
+    ru: 'RU',
+    kk: 'KK',
+  };
+
+  const languageLabels: Record<Language, string> = {
+    en: 'English',
+    ru: 'Russian',
+    kk: 'Kazakh',
   };
 
   // Close dropdown when clicking outside
@@ -44,6 +52,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
+      }
+      if (languageDropdownRef.current && !languageDropdownRef.current.contains(event.target as Node)) {
+        setIsLanguageOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -89,48 +100,76 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Language Switcher - Always Visible on Tablet/Desktop, responsive on Mobile */}
-            <div className="flex items-center bg-gray-50 p-1 rounded-2xl border border-gray-100">
-              {(['en', 'ru', 'kk'] as Language[]).map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => onLanguageChange(lang)}
-                  className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs font-black rounded-xl transition-all ${
-                    language === lang 
-                      ? 'bg-white text-blue-600 shadow-md scale-105' 
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <span className="text-sm sm:text-base leading-none">{flags[lang]}</span>
-                  <span className="hidden xs:inline uppercase text-[10px]">{lang}</span>
-                </button>
-              ))}
+            <div className="relative" ref={languageDropdownRef}>
+              <button
+                onClick={() => setIsLanguageOpen(prev => !prev)}
+                aria-label="Change language"
+                aria-expanded={isLanguageOpen}
+                className={`h-11 min-w-16 px-3 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                  isLanguageOpen ? 'ring-4 ring-blue-500/10 bg-slate-200' : ''
+                }`}
+              >
+                <span className="text-xs font-black text-slate-900 uppercase">{flags[language]}</span>
+                <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isLanguageOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isLanguageOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close language menu"
+                    className="fixed inset-0 z-40 cursor-default bg-transparent"
+                    onClick={() => setIsLanguageOpen(false)}
+                  />
+                  <div className="absolute right-0 z-50 mt-3 w-44 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-in fade-in zoom-in slide-in-from-top-2 duration-200 overflow-hidden">
+                    {(['en', 'ru', 'kk'] as Language[]).map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          onLanguageChange(lang);
+                          setIsLanguageOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors ${
+                          language === lang
+                            ? 'bg-blue-50 text-blue-600 font-black'
+                            : 'text-slate-500 hover:bg-slate-50 font-bold'
+                        }`}
+                      >
+                        <span>{languageLabels[lang]}</span>
+                        <span className="text-[10px] font-black uppercase">{flags[lang]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-2 p-1.5 pr-3 sm:pr-4 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-all active:scale-95 group"
+                  aria-label="Open account menu"
+                  aria-expanded={isProfileOpen}
+                  className={`w-11 h-11 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-all active:scale-95 flex items-center justify-center ${
+                    isProfileOpen ? 'ring-4 ring-blue-500/10 bg-slate-200' : ''
+                  }`}
                 >
                   <div className="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm uppercase shadow-lg">
                     {user.name.charAt(0)}
                   </div>
-                  <div className="hidden sm:block text-left">
-                    <span className="block text-[8px] font-black uppercase text-slate-400 leading-none mb-0.5">Account</span>
-                    <span className="block text-xs font-bold text-slate-900 truncate max-w-[70px]">{user.name}</span>
-                  </div>
-                  <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                  </svg>
                 </button>
 
                 {/* Dropdown Menu */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-in fade-in zoom-in slide-in-from-top-2 duration-200 overflow-hidden">
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-in fade-in zoom-in slide-in-from-top-2 duration-200 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-50 mb-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Signed in as</p>
-                      <p className="text-sm font-bold text-slate-900 truncate">{user.email || user.name}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Account</p>
+                      <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
+                      {user.email && (
+                        <p className="text-xs font-medium text-slate-400 truncate mt-0.5">{user.email}</p>
+                      )}
                     </div>
                     <button 
                       onClick={() => {
@@ -177,3 +216,4 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
 };
 
 export default Navbar;
+
