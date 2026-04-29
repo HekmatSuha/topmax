@@ -17,8 +17,15 @@ type PageKey = 'home' | 'contact' | 'basket';
 
 const normalizeColorKey = (colorKey: string) => colorKey.trim().toLowerCase().replace(/\s+/g, '-');
 
+const detectLanguage = (): Language => {
+  const lang = (navigator.languages?.[0] ?? navigator.language ?? 'en').toLowerCase();
+  if (lang.startsWith('ru')) return 'ru';
+  if (lang.startsWith('kk') || lang.startsWith('kaz')) return 'kk';
+  return 'en';
+};
+
 const App: React.FC = () => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>(detectLanguage);
   const [currentPage, setCurrentPage] = useState<PageKey>('home');
   const [filter, setFilter] = useState<CategoryKey>('All');
   const [searchQuery, setSearchQuery] = useState('');
