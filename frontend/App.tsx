@@ -33,6 +33,7 @@ const App: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [showBuyElseModal, setShowBuyElseModal] = useState(false);
   const [likedIds, setLikedIds] = useState<string[]>([]);
@@ -59,6 +60,47 @@ const App: React.FC = () => {
     if (url.startsWith('/')) return `${BACKEND_BASE_URL}${url}`;
     return `${BACKEND_BASE_URL}/${url}`;
   };
+
+  const openProductById = (id: string, productList: Product[]) => {
+    const found = productList.find(p => String(p.id) === String(id));
+    if (found) setSelectedProduct(found);
+  };
+
+  const handleSelectProduct = (product: Product | null) => {
+    setSelectedProduct(product);
+    if (product) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('product', String(product.id));
+      window.history.pushState({ productId: product.id }, '', url.toString());
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('product');
+      window.history.pushState({}, '', url.toString());
+    }
+  };
+
+  const handleShareProduct = () => {
+    const url = new URL(window.location.href);
+    if (selectedProduct) url.searchParams.set('product', String(selectedProduct.id));
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  };
+
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('product');
+      if (id) {
+        openProductById(id, products);
+      } else {
+        setSelectedProduct(null);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [products]);
 
   useEffect(() => {
     // Check backend connection
@@ -96,6 +138,10 @@ const App: React.FC = () => {
         }));
         setProducts(normalizedProducts);
         setProductsError('');
+        // Open product from URL on initial load
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('product');
+        if (id) openProductById(id, normalizedProducts);
       })
       .catch(err => {
         console.error('Failed to load products:', err);
@@ -346,7 +392,7 @@ const App: React.FC = () => {
                   <ProductCard 
                     key={product.id} 
                     product={product} 
-                    onInquire={setSelectedProduct} 
+                    onInquire={handleSelectProduct}
                     language={language}
                     isLiked={likedIds.includes(product.id)}
                     onToggleLike={() => toggleLike(product.id)}
@@ -414,10 +460,10 @@ const App: React.FC = () => {
 
       {selectedProduct && (
         <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setSelectedProduct(null)}></div>
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => handleSelectProduct(null)}></div>
           <div className={`relative bg-white rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl transition-all duration-500 transform ${isModalVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
             <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 p-5 flex items-center justify-between">
-               <button onClick={() => setSelectedProduct(null)} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-all">
+               <button onClick={() => handleSelectProduct(null)} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-all">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                   <span className="text-sm uppercase tracking-widest">Back</span>
                </button>
@@ -425,9 +471,24 @@ const App: React.FC = () => {
                   <span className="block text-[10px] uppercase tracking-widest font-black text-blue-600">{t[selectedProduct.category][language]}</span>
                   <span className="text-sm font-bold text-slate-900 uppercase tracking-tight">{selectedProduct.name[language]}</span>
                </div>
-               <button onClick={() => setSelectedProduct(null)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-               </button>
+               <div className="flex items-center gap-2">
+                  <button onClick={handleShareProduct} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-black uppercase tracking-widest">
+                    {shareCopied ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                        Share
+                      </>
+                    )}
+                  </button>
+                  <button onClick={() => handleSelectProduct(null)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2">
@@ -598,13 +659,13 @@ const App: React.FC = () => {
             <p className="text-slate-500 text-xl mb-10 font-medium leading-relaxed">{t.buyElsePrompt[language]}</p>
             <div className="flex flex-col gap-4">
               <button 
-                onClick={() => { setShowBuyElseModal(false); setSelectedProduct(null); setCurrentPage('home'); }}
+                onClick={() => { setShowBuyElseModal(false); handleSelectProduct(null); setCurrentPage('home'); }}
                 className="bg-blue-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
               >
                 {t.keepLooking[language]}
               </button>
               <button 
-                onClick={() => { setShowBuyElseModal(false); setSelectedProduct(null); setCurrentPage('basket'); }}
+                onClick={() => { setShowBuyElseModal(false); handleSelectProduct(null); setCurrentPage('basket'); }}
                 className="bg-slate-100 text-slate-900 py-5 rounded-2xl font-black text-xl hover:bg-slate-200 transition-all"
               >
                 {t.goBasket[language]}
