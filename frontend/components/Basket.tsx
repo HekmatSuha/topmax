@@ -26,7 +26,7 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
       .map(item => {
         const colorName = item.selectedColor ? t[item.selectedColor][language] : 'Standard';
         const ep = getEffectivePrice(item);
-        return `• *${item.name[language]}* (x${item.quantity})\n  Finish: ${colorName}\n  Price: ${ep.toLocaleString()} ₸\n  Image: ${item.imageUrls[0]}\n`;
+        return `• *${item.name[language]}* (x${item.quantity})\n  Finish: ${colorName}\n  Price: ${ep.toLocaleString()} ₸\n  Link: https://topmax.kz/?product=${item.id}\n`;
       })
       .join('\n');
 
