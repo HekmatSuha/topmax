@@ -43,7 +43,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
 
     const timer = window.setInterval(() => {
       setActiveImageIndex(index => (index + 1) % slideshowImages.length);
-    }, 1200);
+    }, 2400);
 
     return () => window.clearInterval(timer);
   }, [isHovered, slideshowImages.length]);
@@ -64,7 +64,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
             src={imageUrl}
             alt={index === activeImageIndex ? productName : ''}
             aria-hidden={index !== activeImageIndex}
-            className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110 ${
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out group-hover:scale-105 ${
               index === activeImageIndex ? 'opacity-100' : 'opacity-0'
             } ${outOfStock ? 'grayscale-[40%]' : ''}`}
           />
