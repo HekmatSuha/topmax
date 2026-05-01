@@ -492,26 +492,30 @@ const App: React.FC = () => {
         <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => handleSelectProduct(null)}></div>
           <div className={`relative bg-white rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl transition-all duration-500 transform ${isModalVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
-            <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 p-5 flex items-center justify-between">
-               <button onClick={() => handleSelectProduct(null)} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-all">
+            <div className="sticky top-0 z-40 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 bg-white/90 backdrop-blur-md border-b border-gray-100 p-4 sm:p-5">
+               <button onClick={() => handleSelectProduct(null)} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-900 font-bold transition-all">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-                  <span className="text-sm uppercase tracking-widest">Back</span>
+                  <span className="hidden sm:inline text-sm uppercase tracking-widest">Back</span>
                </button>
-               <div className="text-center">
-                  <span className="block text-[10px] uppercase tracking-widest font-black text-blue-600">{t[selectedProduct.category][language]}</span>
-                  <span className="text-sm font-bold text-slate-900 uppercase tracking-tight">{selectedProduct.name[language]}</span>
+               <div className="min-w-0 px-1 text-center">
+                  <span className="block truncate text-[10px] uppercase tracking-widest font-black text-blue-600">{t[selectedProduct.category][language]}</span>
+                  <span className="block truncate text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-tight">{selectedProduct.name[language]}</span>
                </div>
                <div className="flex items-center gap-2">
-                  <button onClick={handleShareProduct} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-black uppercase tracking-widest">
+                  <button
+                    onClick={handleShareProduct}
+                    aria-label={shareCopied ? 'Product link copied' : 'Share product'}
+                    className="flex h-10 w-10 sm:w-auto items-center justify-center gap-1.5 rounded-xl bg-blue-50 px-0 sm:px-3 py-2 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-black uppercase tracking-widest"
+                  >
                     {shareCopied ? (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        Copied!
+                        <span className="hidden sm:inline">Copied!</span>
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                        Share
+                        <span className="hidden sm:inline">Share</span>
                       </>
                     )}
                   </button>
