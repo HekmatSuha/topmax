@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import Contact from './components/Contact';
@@ -39,6 +39,7 @@ const App: React.FC = () => {
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const productsStartRef = useRef<HTMLDivElement>(null);
 
   const t = translations;
 
@@ -243,6 +244,13 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCategorySelect = (key: CategoryKey) => {
+    setFilter(key);
+    window.setTimeout(() => {
+      productsStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
   const renderCategoryIcon = (key: string, isActive: boolean) => {
     const colorClass = isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-600';
     
@@ -371,7 +379,7 @@ const App: React.FC = () => {
               {categoryKeys.map(key => (
                 <button
                   key={key}
-                  onClick={() => setFilter(key)}
+                  onClick={() => handleCategorySelect(key)}
                   className={`group flex shrink-0 snap-start items-center gap-2 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 md:px-6 ${
                     filter === key 
                       ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105' 
@@ -384,6 +392,8 @@ const App: React.FC = () => {
               ))}
               </div>
             </div>
+
+            <div ref={productsStartRef} className="scroll-mt-36 md:scroll-mt-8" />
 
             {isProductsLoading ? (
               <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 mb-20">
