@@ -31,6 +31,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
     return product.imageUrls.filter(Boolean);
   }, [product.images, product.imageUrls]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
 
   useEffect(() => {
@@ -38,17 +39,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
   }, [product.id, slideshowImages.length]);
 
   useEffect(() => {
-    if (slideshowImages.length <= 1) return;
+    if (!isHovered || slideshowImages.length <= 1) return;
 
     const timer = window.setInterval(() => {
       setActiveImageIndex(index => (index + 1) % slideshowImages.length);
-    }, 3500);
+    }, 1200);
 
     return () => window.clearInterval(timer);
-  }, [slideshowImages.length]);
+  }, [isHovered, slideshowImages.length]);
 
   return (
-    <div className={`group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 ${outOfStock ? 'opacity-75' : ''}`}>
+    <div
+      className={`group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 ${outOfStock ? 'opacity-75' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setActiveImageIndex(0);
+      }}
+    >
       <div className="relative aspect-[4/3] sm:h-64 sm:aspect-auto overflow-hidden bg-gray-100">
         {slideshowImages.map((imageUrl, index) => (
           <img
