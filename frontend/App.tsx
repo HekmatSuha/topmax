@@ -17,15 +17,8 @@ type PageKey = 'home' | 'contact' | 'basket';
 
 const normalizeColorKey = (colorKey: string) => colorKey.trim().toLowerCase().replace(/\s+/g, '-');
 
-const detectLanguage = (): Language => {
-  const lang = (navigator.languages?.[0] ?? navigator.language ?? 'en').toLowerCase();
-  if (lang.startsWith('ru')) return 'ru';
-  if (lang.startsWith('kk') || lang.startsWith('kaz')) return 'kk';
-  return 'en';
-};
-
 const App: React.FC = () => {
-  const [language, setLanguage] = useState<Language>(detectLanguage);
+  const [language, setLanguage] = useState<Language>('ru');
   const [currentPage, setCurrentPage] = useState<PageKey>('home');
   const [filter, setFilter] = useState<CategoryKey>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +38,7 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const t = translations;
 
@@ -173,6 +167,16 @@ const App: React.FC = () => {
   }, [likedIds]);
 
   useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 420);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
     if (selectedProduct) {
       setIsModalVisible(true);
       setSelectedColor(selectedProduct.availableColors?.[0] || null);
@@ -235,6 +239,7 @@ const App: React.FC = () => {
   const handleNavigate = (page: string) => {
     if (page === 'home' || page === 'contact' || page === 'basket') {
       setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -361,12 +366,13 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 mb-12">
+            <div className="sticky top-20 z-40 -mx-4 mb-8 border-y border-gray-100 bg-gray-50/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:mb-12 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <div className="no-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-3 overflow-x-auto md:flex-wrap md:justify-center md:gap-4 md:overflow-visible">
               {categoryKeys.map(key => (
                 <button
                   key={key}
                   onClick={() => setFilter(key)}
-                  className={`group flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm transition-all duration-300 ${
+                  className={`group flex shrink-0 snap-start items-center gap-2 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 md:px-6 ${
                     filter === key 
                       ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105' 
                       : 'bg-white border border-gray-100 text-slate-500 hover:border-blue-200 hover:bg-blue-50'
@@ -376,6 +382,7 @@ const App: React.FC = () => {
                   {key === 'All' ? t.all[language] : t[key][language]}
                 </button>
               ))}
+              </div>
             </div>
 
             {isProductsLoading ? (
@@ -443,7 +450,7 @@ const App: React.FC = () => {
         backendStatus={backendStatus}
       />
       
-      <main className="flex-grow">
+      <main className="flex-grow pb-16 md:pb-0">
         {renderPage()}
       </main>
 
@@ -453,6 +460,19 @@ const App: React.FC = () => {
         basketCount={basket.reduce((a, b) => a + b.quantity, 0)}
         language={language}
       />
+
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        aria-label="Scroll to top"
+        className={`fixed bottom-20 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl shadow-slate-300 transition-all duration-300 hover:bg-blue-600 active:scale-95 md:bottom-6 md:right-6 ${
+          showScrollTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
+        }`}
+      >
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+        </svg>
+      </button>
 
       {showAuth && (
         <Auth language={language} onAuthComplete={handleAuthComplete} onCancel={() => setShowAuth(false)} />
