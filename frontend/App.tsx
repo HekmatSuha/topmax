@@ -48,7 +48,7 @@ const App: React.FC = () => {
 
   const t = translations;
 
-  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} KZT`;
+  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
   const getLocalizedText = (
     value: Partial<Record<Language, string>> | undefined,
     fallback = ''
