@@ -48,16 +48,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
     return () => window.clearInterval(timer);
   }, [isHovered, slideshowImages.length]);
 
-  const showImageControls = slideshowImages.length > 1;
-  const goToPreviousImage = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    setActiveImageIndex(index => (index - 1 + slideshowImages.length) % slideshowImages.length);
-  };
-  const goToNextImage = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    setActiveImageIndex(index => (index + 1) % slideshowImages.length);
-  };
-
   return (
     <div
       className={`group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 ${outOfStock ? 'opacity-75' : ''}`}
@@ -80,7 +70,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
           />
         ))}
 
-        {showImageControls && (
+        {slideshowImages.length > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/25 px-2 py-1 backdrop-blur-sm">
             {slideshowImages.map((_, index) => (
               <span
@@ -92,31 +82,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
               />
             ))}
           </div>
-        )}
-
-        {showImageControls && (
-          <>
-            <button
-              type="button"
-              onClick={goToPreviousImage}
-              aria-label="Previous product photo"
-              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-slate-700 opacity-0 shadow-md shadow-slate-900/10 backdrop-blur transition-all hover:bg-white hover:text-blue-600 group-hover:opacity-100"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={goToNextImage}
-              aria-label="Next product photo"
-              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-slate-700 opacity-0 shadow-md shadow-slate-900/10 backdrop-blur transition-all hover:bg-white hover:text-blue-600 group-hover:opacity-100"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
         )}
 
         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-col gap-2">
