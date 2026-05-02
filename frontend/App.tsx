@@ -544,6 +544,7 @@ const App: React.FC = () => {
       })
       .map(result => result.product);
   }, [products, filter, searchTokens]);
+  const hasActiveSearch = searchTokens.length > 0 || Boolean(visualSearch);
 
   const addToBasket = (product: Product) => {
     setBasket(prev => {
@@ -595,14 +596,14 @@ const App: React.FC = () => {
                   </svg>
                   <input
                     type="search"
-                    placeholder="Search by name, item code, size, color, or photo..."
+                    placeholder={t.searchPlaceholder[language]}
                     value={searchQuery}
                     onChange={(e) => {
                       if (visualSearch) resetVisualSearch();
                       setSearchQuery(e.target.value);
                     }}
                     className="min-w-0 flex-1 bg-transparent px-1 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-gray-400 sm:text-lg"
-                    aria-label="Search products by name, item code, size, color, or photo"
+                    aria-label={t.searchPlaceholder[language]}
                   />
                   <input
                     ref={imageSearchInputRef}
@@ -615,8 +616,8 @@ const App: React.FC = () => {
                     type="button"
                     onClick={() => imageSearchInputRef.current?.click()}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
-                    aria-label="Search by photo from phone"
-                    title="Search by photo"
+                    aria-label={t.searchPhoto[language]}
+                    title={t.searchPhoto[language]}
                   >
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16v14H4V5z" />
@@ -636,8 +637,8 @@ const App: React.FC = () => {
                     type="button"
                     onClick={() => cameraSearchInputRef.current?.click()}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900"
-                    aria-label="Search by camera"
-                    title="Search by camera"
+                    aria-label={t.searchCamera[language]}
+                    title={t.searchCamera[language]}
                   >
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h3l1.5-2h7L17 8h3v11H4V8z" />
@@ -652,7 +653,7 @@ const App: React.FC = () => {
                         resetVisualSearch();
                       }}
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
-                      aria-label="Clear search"
+                      aria-label={t.clearSearch[language]}
                     >
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -660,11 +661,13 @@ const App: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <div className="flex items-center justify-end border-t border-gray-100 px-2 py-2">
-                  <span className="shrink-0 px-2 text-xs font-black uppercase tracking-widest text-slate-400">
-                    {filteredProducts.length}/{products.length}
-                  </span>
-                </div>
+                {hasActiveSearch && (
+                  <div className="flex items-center justify-end border-t border-gray-100 px-2 py-2">
+                    <span className="shrink-0 px-2 text-xs font-black uppercase tracking-widest text-slate-400">
+                      {filteredProducts.length}/{products.length}
+                    </span>
+                  </div>
+                )}
                 {(visualSearch || visualSearchError) && (
                   <div className="flex items-center gap-3 border-t border-gray-100 px-3 py-3">
                     {visualSearch ? (
@@ -676,10 +679,10 @@ const App: React.FC = () => {
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-black text-slate-900">
-                            Photo match: {visualSearch.label}
+                            {t.photoMatch[language]}: {visualSearch.label}
                           </p>
                           <p className="text-xs font-semibold text-slate-400">
-                            {Math.round(visualSearch.confidence * 100)}% finish confidence
+                            {Math.round(visualSearch.confidence * 100)}% {t.finishConfidence[language]}
                           </p>
                         </div>
                         <button
@@ -690,7 +693,7 @@ const App: React.FC = () => {
                           }}
                           className="rounded-lg px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                         >
-                          Clear
+                          {t.clear[language]}
                         </button>
                       </>
                     ) : (
@@ -746,7 +749,7 @@ const App: React.FC = () => {
             ) : (
               <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 mb-20">
                 <p className="text-gray-400 text-xl font-medium">No results found.</p>
-                <button onClick={() => setSearchQuery('')} className="mt-2 text-blue-600 font-bold hover:underline">Clear search</button>
+                <button onClick={() => setSearchQuery('')} className="mt-2 text-blue-600 font-bold hover:underline">{t.clearSearch[language]}</button>
               </div>
             )}
 
