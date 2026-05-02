@@ -25,6 +25,21 @@ export const translations: Record<string, Record<Language, string>> = {
   passwordPlaceholder: { en: 'Password', ru: 'Пароль', kk: 'Құпия сөз' },
   namePlaceholder: { en: 'Full Name', ru: 'Имя и фамилия', kk: 'Аты-жөні' },
   logout: { en: 'Logout', ru: 'Выйти', kk: 'Шығу' },
+  seoTitle: {
+    en: 'TopMax Sanitary | Premium Bathroom Solutions in Kazakhstan',
+    ru: 'TopMax Sanitary | Премиальные решения для ванной в Казахстане',
+    kk: 'TopMax Sanitary | Қазақстандағы премиум ванна бөлмесі шешімдері'
+  },
+  seoDescription: {
+    en: 'TopMax — your one-stop shop for premium sanitary ware in Kazakhstan. Browse baths, basins, taps, mirrors, closets, towel rails and more.',
+    ru: 'TopMax — всё для вашей ванной комнаты в одном месте. Премиальная сантехника в Казахстане: ванны, раковины, смесители, зеркала, унитазы, сушилки и многое другое.',
+    kk: 'TopMax — ванна бөлмесіне арналған премиум сантехниканың бәрі бір жерде. Қазақстанда ванналар, раковиналар, шүмектер, айналар, унитаздар, кептіргіштер және басқа тауарлар.'
+  },
+  seoKeywords: {
+    en: 'sanitary ware, bathroom, baths, basins, taps, mirrors, Kazakhstan, TopMax',
+    ru: 'сантехника, ванная комната, ванны, раковины, смесители, зеркала, Казахстан, TopMax',
+    kk: 'сантехника, ванна бөлмесі, ванналар, раковиналар, шүмектер, айналар, Қазақстан, TopMax'
+  },
   premiumCollections: { en: 'Your one-stop shop for premium sanitary ware.', ru: 'Всё для вашей ванной комнаты в одном месте.', kk: 'Сантехниканың барлығы бір жерде.' },
   all: { en: 'All Items', ru: 'Все товары', kk: 'Барлық тауарлар' },
   details: { en: 'View Details', ru: 'Посмотреть', kk: 'Көру' },

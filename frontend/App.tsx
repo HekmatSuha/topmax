@@ -225,6 +225,25 @@ const App: React.FC = () => {
   }, [likedIds]);
 
   useEffect(() => {
+    const title = t.seoTitle[language];
+    const description = t.seoDescription[language];
+    const keywords = t.seoKeywords[language];
+    const metaDescription = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    const metaKeywords = document.querySelector<HTMLMetaElement>('meta[name="keywords"]');
+    const ogTitle = document.querySelector<HTMLMetaElement>('meta[property="og:title"]');
+    const ogDescription = document.querySelector<HTMLMetaElement>('meta[property="og:description"]');
+    const ogLocale = document.querySelector<HTMLMetaElement>('meta[property="og:locale"]');
+
+    document.documentElement.lang = language;
+    document.title = title;
+    metaDescription?.setAttribute('content', description);
+    metaKeywords?.setAttribute('content', keywords);
+    ogTitle?.setAttribute('content', title);
+    ogDescription?.setAttribute('content', description);
+    ogLocale?.setAttribute('content', language === 'ru' ? 'ru_KZ' : language === 'kk' ? 'kk_KZ' : 'en_US');
+  }, [language, t]);
+
+  useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 420);
     };
