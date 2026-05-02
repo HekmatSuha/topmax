@@ -14,14 +14,41 @@ const PLACEHOLDER_IMAGE =
 
 type CategoryKey = Product['category'] | 'All';
 type PageKey = 'home' | 'contact' | 'basket';
+type SearchScope = 'all' | 'name' | 'code' | 'size' | 'color';
 
 const normalizeColorKey = (colorKey: string) => colorKey.trim().toLowerCase().replace(/\s+/g, '-');
+const SEARCH_LANGUAGES: Language[] = ['en', 'ru', 'kk'];
+const SEARCH_SCOPES: { key: SearchScope; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'name', label: 'Name' },
+  { key: 'code', label: 'Code' },
+  { key: 'size', label: 'Size' },
+  { key: 'color', label: 'Color' },
+];
+
+const normalizeSearchText = (value: unknown) =>
+  String(value ?? '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/[^\p{L}\p{N}.]+/gu, ' ')
+    .trim();
+
+const tokenizeSearchQuery = (query: string) =>
+  normalizeSearchText(query)
+    .split(/\s+/)
+    .filter(Boolean);
+
+const getLocalizedSearchValues = (value?: Partial<Record<Language, string>>) =>
+  SEARCH_LANGUAGES.map(lang => value?.[lang]).filter(Boolean) as string[];
 
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('ru');
   const [currentPage, setCurrentPage] = useState<PageKey>('home');
   const [filter, setFilter] = useState<CategoryKey>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchScope, setSearchScope] = useState<SearchScope>('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -251,6 +278,93 @@ const App: React.FC = () => {
     }, 0);
   };
 
+  const getColorSearchTerms = (colorKey: string) => {
+    const normalizedKey = normalizeColorKey(colorKey);
+    const translatedColor = t[normalizedKey];
+
+    return [
+      colorKey,
+      normalizedKey,
+      normalizedKey.replace(/-/g, ' '),
+      ...(translatedColor ? getLocalizedSearchValues(translatedColor) : []),
+    ];
+  };
+
+  const getSearchableProductFields = (product: Product) => {
+    const featureValues = SEARCH_LANGUAGES.flatMap(lang => product.features?.[lang] || []);
+    const colorValues = (product.availableColors || []).flatMap(getColorSearchTerms);
+    const categoryValues = [
+      product.category,
+      ...(t[product.category] ? getLocalizedSearchValues(t[product.category]) : []),
+    ];
+    const statusValues = [
+      product.inStock === false ? 'out of stock' : 'in stock',
+      product.isNew ? 'new' : '',
+      ...(product.inStock === false ? getLocalizedSearchValues(t.outOfStock) : getLocalizedSearchValues(t.inStock)),
+      ...(product.isNew ? getLocalizedSearchValues(t.new) : []),
+    ];
+
+    return {
+      name: [...getLocalizedSearchValues(product.name), ...categoryValues],
+      code: [product.itemCode],
+      size: [product.dimensions || ''],
+      color: colorValues,
+      details: [
+        ...getLocalizedSearchValues(product.description),
+        ...featureValues,
+        ...(product.warranty ? getLocalizedSearchValues(product.warranty) : []),
+        String(product.price),
+        product.discountedPrice != null ? String(product.discountedPrice) : '',
+        ...statusValues,
+      ],
+    };
+  };
+
+  const scoreSearchField = (text: string, tokens: string[], weight: number) => {
+    const normalized = normalizeSearchText(text);
+    if (!normalized) return 0;
+
+    return tokens.reduce((score, token) => {
+      if (normalized === token) return score + (weight * 8);
+      if (normalized.startsWith(token)) return score + (weight * 5);
+      if (normalized.includes(token)) return score + (weight * 2);
+      return score;
+    }, 0);
+  };
+
+  const scoreProductSearch = (product: Product, tokens: string[], scope: SearchScope) => {
+    if (tokens.length === 0) return 1;
+
+    const fields = getSearchableProductFields(product);
+    const weightedFields: Record<SearchScope, { values: string[]; weight: number }[]> = {
+      all: [
+        { values: fields.code, weight: 12 },
+        { values: fields.name, weight: 10 },
+        { values: fields.color, weight: 8 },
+        { values: fields.size, weight: 7 },
+        { values: fields.details, weight: 3 },
+      ],
+      name: [{ values: fields.name, weight: 10 }],
+      code: [{ values: fields.code, weight: 12 }],
+      size: [{ values: fields.size, weight: 10 }],
+      color: [{ values: fields.color, weight: 10 }],
+    };
+    const activeFields = weightedFields[scope];
+    const tokenHits = tokens.every(token =>
+      activeFields.some(field =>
+        field.values.some(value => normalizeSearchText(value).includes(token))
+      )
+    );
+
+    if (!tokenHits) return 0;
+
+    return activeFields.reduce((total, field) => {
+      return total + field.values.reduce((fieldTotal, value) => {
+        return fieldTotal + scoreSearchField(value, tokens, field.weight);
+      }, 0);
+    }, 0);
+  };
+
   const renderCategoryIcon = (key: string, isActive: boolean) => {
     const colorClass = isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-600';
     
@@ -303,17 +417,23 @@ const App: React.FC = () => {
   };
 
   const categoryKeys: CategoryKey[] = ['All', 'Baths', 'Basins', 'Taps', 'Closets', 'Mirrors', 'Dryers', 'Others'];
-  
-  const filteredProducts = products.filter(p => {
-    const matchesFilter = filter === 'All' || p.category === filter;
-    const productName = getLocalizedText(p.name).toLowerCase();
-    const productDescription = getLocalizedText(p.description).toLowerCase();
-    const query = searchQuery.toLowerCase().trim();
-    const matchesSearch = 
-      productName.includes(query) ||
-      productDescription.includes(query);
-    return matchesFilter && matchesSearch;
-  });
+  const searchTokens = useMemo(() => tokenizeSearchQuery(searchQuery), [searchQuery]);
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter(product => filter === 'All' || product.category === filter)
+      .map((product, index) => ({
+        product,
+        index,
+        score: scoreProductSearch(product, searchTokens, searchScope),
+      }))
+      .filter(result => searchTokens.length === 0 || result.score > 0)
+      .sort((a, b) => {
+        if (searchTokens.length === 0) return a.index - b.index;
+        return b.score - a.score || a.index - b.index;
+      })
+      .map(result => result.product);
+  }, [products, filter, searchTokens, searchScope]);
+  const activeSearchLabel = SEARCH_SCOPES.find(scope => scope.key === searchScope)?.label || 'All';
 
   const addToBasket = (product: Product) => {
     setBasket(prev => {
@@ -358,18 +478,52 @@ const App: React.FC = () => {
                 {t.premiumCollections[language]}
               </p>
               
-              <div className="relative max-w-xl mx-auto mb-10">
-                <input
-                  type="text"
-                  placeholder={t.searchPlaceholder[language]}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-2xl px-6 py-4 pl-14 text-lg focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all shadow-sm"
-                />
-                <div className="absolute left-5 top-1/2 -translate-y-1/2">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-gray-200 bg-white p-2 text-left shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+                <div className="flex items-center gap-2 px-3">
+                  <svg className="h-6 w-6 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
+                  <input
+                    type="search"
+                    placeholder={t.searchPlaceholder[language]}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent px-1 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-gray-400 sm:text-lg"
+                    aria-label={`Search products by ${activeSearchLabel.toLowerCase()}`}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                      aria-label="Clear search"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-2 py-2">
+                  <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                    {SEARCH_SCOPES.map(scope => (
+                      <button
+                        key={scope.key}
+                        type="button"
+                        onClick={() => setSearchScope(scope.key)}
+                        className={`rounded-xl px-3 py-2 text-xs font-black uppercase tracking-widest transition-colors ${
+                          searchScope === scope.key
+                            ? 'bg-slate-900 text-white shadow-sm'
+                            : 'bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-700'
+                        }`}
+                      >
+                        {scope.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="shrink-0 px-2 text-xs font-black uppercase tracking-widest text-slate-400">
+                    {filteredProducts.length}/{products.length}
+                  </span>
                 </div>
               </div>
             </div>
