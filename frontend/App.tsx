@@ -15,6 +15,11 @@ const PLACEHOLDER_IMAGE =
 type CategoryKey = Product['category'] | 'All';
 type PageKey = 'home' | 'contact' | 'basket';
 type SearchScope = 'all' | 'name' | 'code' | 'size' | 'color';
+type VisualSearchResult = {
+  label: string;
+  confidence: number;
+  previewUrl: string;
+};
 
 const normalizeColorKey = (colorKey: string) => colorKey.trim().toLowerCase().replace(/\s+/g, '-');
 const SEARCH_LANGUAGES: Language[] = ['en', 'ru', 'kk'];
@@ -43,12 +48,44 @@ const tokenizeSearchQuery = (query: string) =>
 const getLocalizedSearchValues = (value?: Partial<Record<Language, string>>) =>
   SEARCH_LANGUAGES.map(lang => value?.[lang]).filter(Boolean) as string[];
 
+const getRgbDistance = (
+  color: { r: number; g: number; b: number },
+  target: { r: number; g: number; b: number }
+) => {
+  const red = color.r - target.r;
+  const green = color.g - target.g;
+  const blue = color.b - target.b;
+  return Math.sqrt(red * red + green * green + blue * blue);
+};
+
+const inferFinishFromRgb = (color: { r: number; g: number; b: number }) => {
+  const targets = [
+    { label: 'white', rgb: { r: 245, g: 245, b: 240 } },
+    { label: 'black', rgb: { r: 25, g: 25, b: 25 } },
+    { label: 'chrome', rgb: { r: 185, g: 190, b: 195 } },
+    { label: 'gold', rgb: { r: 212, g: 175, b: 55 } },
+    { label: 'rose gold', rgb: { r: 183, g: 110, b: 121 } },
+    { label: 'bronze', rgb: { r: 150, g: 95, b: 45 } },
+    { label: 'grey', rgb: { r: 125, g: 132, b: 142 } },
+  ];
+  const closest = targets
+    .map(target => ({ label: target.label, distance: getRgbDistance(color, target.rgb) }))
+    .sort((a, b) => a.distance - b.distance)[0];
+
+  return {
+    label: closest.label,
+    confidence: Math.max(0.35, Math.min(0.95, 1 - closest.distance / 440)),
+  };
+};
+
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('ru');
   const [currentPage, setCurrentPage] = useState<PageKey>('home');
   const [filter, setFilter] = useState<CategoryKey>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState<SearchScope>('all');
+  const [visualSearch, setVisualSearch] = useState<VisualSearchResult | null>(null);
+  const [visualSearchError, setVisualSearchError] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -67,6 +104,7 @@ const App: React.FC = () => {
   const [productsError, setProductsError] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const productsStartRef = useRef<HTMLDivElement>(null);
+  const imageSearchInputRef = useRef<HTMLInputElement>(null);
 
   const t = translations;
 
@@ -216,6 +254,12 @@ const App: React.FC = () => {
     }
   }, [selectedProduct]);
 
+  useEffect(() => {
+    return () => {
+      if (visualSearch?.previewUrl) URL.revokeObjectURL(visualSearch.previewUrl);
+    };
+  }, [visualSearch?.previewUrl]);
+
   // Compute visible image URLs based on selected color
   const visibleImageUrls = useMemo(() => {
     if (!selectedProduct) return [];
@@ -276,6 +320,88 @@ const App: React.FC = () => {
     window.setTimeout(() => {
       productsStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 0);
+  };
+
+  const resetVisualSearch = () => {
+    if (visualSearch?.previewUrl) URL.revokeObjectURL(visualSearch.previewUrl);
+    setVisualSearch(null);
+    setVisualSearchError('');
+    if (imageSearchInputRef.current) imageSearchInputRef.current.value = '';
+  };
+
+  const handleImageSearch = (file?: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setVisualSearchError('Please choose a photo.');
+      return;
+    }
+
+    const image = new Image();
+    const previewUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 96;
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+
+      if (!context) {
+        URL.revokeObjectURL(previewUrl);
+        setVisualSearchError('Image search is not available in this browser.');
+        return;
+      }
+
+      context.drawImage(image, 0, 0, size, size);
+      const pixels = context.getImageData(0, 0, size, size).data;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let count = 0;
+
+      for (let index = 0; index < pixels.length; index += 4) {
+        const alpha = pixels[index + 3];
+        const red = pixels[index];
+        const green = pixels[index + 1];
+        const blue = pixels[index + 2];
+        const brightness = (red + green + blue) / 3;
+
+        if (alpha < 180 || brightness < 12 || brightness > 248) continue;
+
+        r += red;
+        g += green;
+        b += blue;
+        count += 1;
+      }
+
+      if (count === 0) {
+        URL.revokeObjectURL(previewUrl);
+        setVisualSearchError('Could not read enough color from that photo.');
+        return;
+      }
+
+      const detected = inferFinishFromRgb({
+        r: Math.round(r / count),
+        g: Math.round(g / count),
+        b: Math.round(b / count),
+      });
+
+      resetVisualSearch();
+      setVisualSearch({ ...detected, previewUrl });
+      setVisualSearchError('');
+      setSearchScope('color');
+      setSearchQuery(detected.label);
+      setFilter('All');
+      productsStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(previewUrl);
+      setVisualSearchError('Could not read that photo.');
+    };
+
+    image.src = previewUrl;
   };
 
   const getColorSearchTerms = (colorKey: string) => {
@@ -487,14 +613,39 @@ const App: React.FC = () => {
                     type="search"
                     placeholder={t.searchPlaceholder[language]}
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      if (visualSearch) resetVisualSearch();
+                      setSearchQuery(e.target.value);
+                    }}
                     className="min-w-0 flex-1 bg-transparent px-1 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-gray-400 sm:text-lg"
                     aria-label={`Search products by ${activeSearchLabel.toLowerCase()}`}
                   />
+                  <input
+                    ref={imageSearchInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(event) => handleImageSearch(event.target.files?.[0])}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageSearchInputRef.current?.click()}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                    aria-label="Search by photo or camera"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h3l1.5-2h7L17 8h3v11H4V8z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 11a3 3 0 100 6 3 3 0 000-6z" />
+                    </svg>
+                  </button>
                   {searchQuery && (
                     <button
                       type="button"
-                      onClick={() => setSearchQuery('')}
+                      onClick={() => {
+                        setSearchQuery('');
+                        resetVisualSearch();
+                      }}
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
                       aria-label="Clear search"
                     >
@@ -525,6 +676,39 @@ const App: React.FC = () => {
                     {filteredProducts.length}/{products.length}
                   </span>
                 </div>
+                {(visualSearch || visualSearchError) && (
+                  <div className="flex items-center gap-3 border-t border-gray-100 px-3 py-3">
+                    {visualSearch ? (
+                      <>
+                        <img
+                          src={visualSearch.previewUrl}
+                          alt=""
+                          className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-black text-slate-900">
+                            Photo match: {visualSearch.label}
+                          </p>
+                          <p className="text-xs font-semibold text-slate-400">
+                            {Math.round(visualSearch.confidence * 100)}% finish confidence
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery('');
+                            resetVisualSearch();
+                          }}
+                          className="rounded-lg px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                        >
+                          Clear
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-sm font-semibold text-red-500">{visualSearchError}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
