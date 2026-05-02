@@ -14,7 +14,6 @@ const PLACEHOLDER_IMAGE =
 
 type CategoryKey = Product['category'] | 'All';
 type PageKey = 'home' | 'contact' | 'basket';
-type SearchScope = 'all' | 'name' | 'code' | 'size' | 'color';
 type VisualSearchResult = {
   label: string;
   confidence: number;
@@ -23,13 +22,6 @@ type VisualSearchResult = {
 
 const normalizeColorKey = (colorKey: string) => colorKey.trim().toLowerCase().replace(/\s+/g, '-');
 const SEARCH_LANGUAGES: Language[] = ['en', 'ru', 'kk'];
-const SEARCH_SCOPES: { key: SearchScope; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'name', label: 'Name' },
-  { key: 'code', label: 'Code' },
-  { key: 'size', label: 'Size' },
-  { key: 'color', label: 'Color' },
-];
 
 const normalizeSearchText = (value: unknown) =>
   String(value ?? '')
@@ -83,7 +75,6 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageKey>('home');
   const [filter, setFilter] = useState<CategoryKey>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchScope, setSearchScope] = useState<SearchScope>('all');
   const [visualSearch, setVisualSearch] = useState<VisualSearchResult | null>(null);
   const [visualSearchError, setVisualSearchError] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -105,6 +96,7 @@ const App: React.FC = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const productsStartRef = useRef<HTMLDivElement>(null);
   const imageSearchInputRef = useRef<HTMLInputElement>(null);
+  const cameraSearchInputRef = useRef<HTMLInputElement>(null);
 
   const t = translations;
 
@@ -327,6 +319,7 @@ const App: React.FC = () => {
     setVisualSearch(null);
     setVisualSearchError('');
     if (imageSearchInputRef.current) imageSearchInputRef.current.value = '';
+    if (cameraSearchInputRef.current) cameraSearchInputRef.current.value = '';
   };
 
   const handleImageSearch = (file?: File) => {
@@ -390,7 +383,6 @@ const App: React.FC = () => {
       resetVisualSearch();
       setVisualSearch({ ...detected, previewUrl });
       setVisualSearchError('');
-      setSearchScope('color');
       setSearchQuery(detected.label);
       setFilter('All');
       productsStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -458,24 +450,17 @@ const App: React.FC = () => {
     }, 0);
   };
 
-  const scoreProductSearch = (product: Product, tokens: string[], scope: SearchScope) => {
+  const scoreProductSearch = (product: Product, tokens: string[]) => {
     if (tokens.length === 0) return 1;
 
     const fields = getSearchableProductFields(product);
-    const weightedFields: Record<SearchScope, { values: string[]; weight: number }[]> = {
-      all: [
-        { values: fields.code, weight: 12 },
-        { values: fields.name, weight: 10 },
-        { values: fields.color, weight: 8 },
-        { values: fields.size, weight: 7 },
-        { values: fields.details, weight: 3 },
-      ],
-      name: [{ values: fields.name, weight: 10 }],
-      code: [{ values: fields.code, weight: 12 }],
-      size: [{ values: fields.size, weight: 10 }],
-      color: [{ values: fields.color, weight: 10 }],
-    };
-    const activeFields = weightedFields[scope];
+    const activeFields = [
+      { values: fields.code, weight: 12 },
+      { values: fields.name, weight: 10 },
+      { values: fields.color, weight: 8 },
+      { values: fields.size, weight: 7 },
+      { values: fields.details, weight: 3 },
+    ];
     const tokenHits = tokens.every(token =>
       activeFields.some(field =>
         field.values.some(value => normalizeSearchText(value).includes(token))
@@ -550,7 +535,7 @@ const App: React.FC = () => {
       .map((product, index) => ({
         product,
         index,
-        score: scoreProductSearch(product, searchTokens, searchScope),
+        score: scoreProductSearch(product, searchTokens),
       }))
       .filter(result => searchTokens.length === 0 || result.score > 0)
       .sort((a, b) => {
@@ -558,8 +543,7 @@ const App: React.FC = () => {
         return b.score - a.score || a.index - b.index;
       })
       .map(result => result.product);
-  }, [products, filter, searchTokens, searchScope]);
-  const activeSearchLabel = SEARCH_SCOPES.find(scope => scope.key === searchScope)?.label || 'All';
+  }, [products, filter, searchTokens]);
 
   const addToBasket = (product: Product) => {
     setBasket(prev => {
@@ -611,17 +595,37 @@ const App: React.FC = () => {
                   </svg>
                   <input
                     type="search"
-                    placeholder={t.searchPlaceholder[language]}
+                    placeholder="Search by name, item code, size, color, or photo..."
                     value={searchQuery}
                     onChange={(e) => {
                       if (visualSearch) resetVisualSearch();
                       setSearchQuery(e.target.value);
                     }}
                     className="min-w-0 flex-1 bg-transparent px-1 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-gray-400 sm:text-lg"
-                    aria-label={`Search products by ${activeSearchLabel.toLowerCase()}`}
+                    aria-label="Search products by name, item code, size, color, or photo"
                   />
                   <input
                     ref={imageSearchInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => handleImageSearch(event.target.files?.[0])}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageSearchInputRef.current?.click()}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                    aria-label="Search by photo from phone"
+                    title="Search by photo"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16v14H4V5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l2.5 2.5L13 11l4 5H7l1-5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 8.5h.01" />
+                    </svg>
+                  </button>
+                  <input
+                    ref={cameraSearchInputRef}
                     type="file"
                     accept="image/*"
                     capture="environment"
@@ -630,9 +634,10 @@ const App: React.FC = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => imageSearchInputRef.current?.click()}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
-                    aria-label="Search by photo or camera"
+                    onClick={() => cameraSearchInputRef.current?.click()}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                    aria-label="Search by camera"
+                    title="Search by camera"
                   >
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h3l1.5-2h7L17 8h3v11H4V8z" />
@@ -655,23 +660,7 @@ const App: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-2 py-2">
-                  <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-                    {SEARCH_SCOPES.map(scope => (
-                      <button
-                        key={scope.key}
-                        type="button"
-                        onClick={() => setSearchScope(scope.key)}
-                        className={`rounded-xl px-3 py-2 text-xs font-black uppercase tracking-widest transition-colors ${
-                          searchScope === scope.key
-                            ? 'bg-slate-900 text-white shadow-sm'
-                            : 'bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-700'
-                        }`}
-                      >
-                        {scope.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex items-center justify-end border-t border-gray-100 px-2 py-2">
                   <span className="shrink-0 px-2 text-xs font-black uppercase tracking-widest text-slate-400">
                     {filteredProducts.length}/{products.length}
                   </span>
