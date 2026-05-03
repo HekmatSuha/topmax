@@ -50,14 +50,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
 
   return (
     <div
-      className={`group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 ${outOfStock ? 'opacity-75' : ''}`}
+      className={`group flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:shadow-xl sm:rounded-2xl ${outOfStock ? 'opacity-75' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
         setActiveImageIndex(0);
       }}
     >
-      <div className="relative aspect-[4/3] sm:h-64 sm:aspect-auto overflow-hidden bg-gray-100">
+      <div className="relative aspect-square overflow-hidden bg-gray-100 sm:h-64 sm:aspect-auto">
         {slideshowImages.map((imageUrl, index) => (
           <img
             key={`${imageUrl}-${index}`}
@@ -71,32 +71,32 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
         ))}
 
         {slideshowImages.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/25 px-2 py-1 backdrop-blur-sm">
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/25 px-1.5 py-1 backdrop-blur-sm sm:bottom-3 sm:gap-1.5 sm:px-2">
             {slideshowImages.map((_, index) => (
               <span
                 key={index}
                 aria-hidden="true"
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  index === activeImageIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/55'
+                className={`h-1 rounded-full transition-all duration-300 sm:h-1.5 ${
+                  index === activeImageIndex ? 'w-3 bg-white sm:w-4' : 'w-1 bg-white/55 sm:w-1.5'
                 }`}
               />
             ))}
           </div>
         )}
 
-        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-col gap-2">
+        <div className="absolute left-2 top-2 flex flex-col gap-1.5 sm:left-4 sm:top-4 sm:gap-2">
           {outOfStock && (
-            <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md">
+            <div className="rounded-md bg-red-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
               {translations.outOfStock[language]}
             </div>
           )}
           {hasDiscount && (
-            <div className="bg-orange-500 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md">
+            <div className="rounded-md bg-orange-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
               -{product.discountPercent}%
             </div>
           )}
           {product.isNew && (
-            <div className="bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md">
+            <div className="rounded-md bg-emerald-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
               {translations.new[language]}
             </div>
           )}
@@ -108,7 +108,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
             onToggleLike?.();
           }}
           aria-label={isLiked ? 'Remove from favorites' : 'Add to favorites'}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+          className={`absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 sm:right-3 sm:top-3 ${
             isLiked
               ? 'bg-red-500 text-white'
               : 'bg-black/20 text-white/80 hover:text-red-400 hover:bg-black/30'
@@ -130,35 +130,35 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
         </button>
       </div>
 
-      <div className="p-4 sm:p-6">
-        <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-0.5 leading-snug line-clamp-2">
+      <div className="flex flex-1 flex-col p-2.5 sm:p-6">
+        <h3 className="mb-0.5 line-clamp-2 text-sm font-bold leading-snug text-slate-900 sm:text-xl">
           {productName}
         </h3>
-        <span className="block text-[10px] font-black tracking-widest text-slate-400 uppercase mb-1">
+        <span className="mb-1 block truncate text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">
           CODE: {product.itemCode}
         </span>
         {product.dimensions && (
-          <span className="block text-[11px] font-semibold text-slate-400 mb-3">
+          <span className="mb-3 hidden text-[11px] font-semibold text-slate-400 sm:block">
             {product.dimensions}
           </span>
         )}
-        <p className="text-slate-500 text-sm mb-4 line-clamp-2 leading-relaxed min-h-[2.75rem]">
+        <p className="mb-4 hidden min-h-[2.75rem] text-sm leading-relaxed text-slate-500 sm:line-clamp-2">
           {productDescription}
         </p>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto">
-          <div className="flex flex-wrap items-baseline gap-2 min-w-0">
+        <div className="mt-auto flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-1.5 sm:gap-2">
             {hasDiscount && (
-              <span className="text-sm font-serif font-bold text-slate-400 line-through">
+              <span className="font-serif text-[11px] font-bold text-slate-400 line-through sm:text-sm">
                 {formatPrice(product.price)}
               </span>
             )}
-            <span className={`text-xl font-serif font-black break-words ${hasDiscount ? 'text-red-500' : 'text-blue-600'}`}>
+            <span className={`break-words font-serif text-base font-black sm:text-xl ${hasDiscount ? 'text-red-500' : 'text-blue-600'}`}>
               {formatPrice(displayPrice)}
             </span>
           </div>
           <button
             onClick={() => onInquire(product)}
-            className="w-full sm:w-auto text-sm font-semibold text-white bg-slate-900 px-4 py-2.5 sm:py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            className="w-full rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-600 sm:w-auto sm:px-4 sm:text-sm"
           >
             {translations.details[language]}
           </button>

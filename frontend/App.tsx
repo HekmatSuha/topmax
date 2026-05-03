@@ -602,13 +602,13 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return (
-          <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 text-center">
-              <p className="text-gray-500 text-lg mb-10">
+          <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
+            <div className="mb-8 text-center sm:mb-12">
+              <p className="mb-6 text-base text-gray-500 sm:mb-10 sm:text-lg">
                 {t.premiumCollections[language]}
               </p>
               
-              <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-gray-200 bg-white p-2 text-left shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+              <div className="mx-auto mb-8 max-w-3xl rounded-2xl border border-gray-200 bg-white p-2 text-left shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 sm:mb-10">
                 <div className="flex items-center gap-2 px-3">
                   <svg className="h-6 w-6 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -723,8 +723,8 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="sticky top-20 z-40 -mx-4 mb-8 border-y border-gray-100 bg-gray-50/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:mb-12 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-              <div className="no-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-3 overflow-x-auto md:flex-wrap md:justify-center md:gap-4 md:overflow-visible">
+            <div className="sticky top-20 z-40 -mx-3 mb-5 border-y border-gray-100 bg-gray-50/95 px-3 py-3 backdrop-blur md:static md:mx-0 md:mb-12 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <div className="no-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-2.5 overflow-x-auto md:flex-wrap md:justify-center md:gap-4 md:overflow-visible">
               {categoryKeys.map(key => (
                 <button
                   key={key}
@@ -753,7 +753,7 @@ const App: React.FC = () => {
                 <p className="text-red-500 text-xl font-medium">{productsError}</p>
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-20">
+              <div className="mb-20 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredProducts.map(product => (
                   <ProductCard 
                     key={product.id} 
