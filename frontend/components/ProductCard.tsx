@@ -11,15 +11,17 @@ interface ProductCardProps {
   onToggleLike?: () => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBasket, language, isLiked, onToggleLike }) => {
+const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onInquire,
+  onAddToBasket,
+  language,
+  isLiked,
+  onToggleLike,
+}) => {
   const outOfStock = product.inStock === false;
-  const hasWholesalePrice = product.isWholesaleVisible && product.wholesalePriceUsd;
+  const hasWholesalePrice = Boolean(product.isWholesaleVisible && product.wholesalePriceUsd);
   const productName = product.name[language] || product.name.en;
-  const priceRequestLabel: Record<Language, string> = {
-    en: 'Price on request',
-    ru: 'Цена по запросу',
-    kk: 'Баға сұрау',
-  };
   const slideshowImages = useMemo(() => {
     if (product.images && product.images.length > 0) {
       return [...product.images]
@@ -36,8 +38,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBa
   }, [product.images, product.imageUrls]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const formatUsdPrice = (price: string) => `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const formatKztPrice = (price: string | number) => `${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₸`;
+  const formatUsdPrice = (price: string) =>
+    `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatKztPrice = (price: string | number) =>
+    `${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} KZT`;
 
   useEffect(() => {
     setActiveImageIndex(0);
@@ -55,34 +59,38 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBa
 
   return (
     <div
-      className={`group flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-200 hover:shadow-xl sm:rounded-2xl ${outOfStock ? 'opacity-75' : ''}`}
+      className={`group flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-slate-200/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] ${
+        outOfStock ? 'opacity-75' : ''
+      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
         setActiveImageIndex(0);
       }}
     >
-      <div className="relative aspect-square overflow-hidden bg-white sm:h-64 sm:aspect-auto">
+      <div className="relative aspect-square overflow-hidden bg-slate-100 sm:h-64 sm:aspect-auto">
         {slideshowImages.map((imageUrl, index) => (
           <img
             key={`${imageUrl}-${index}`}
             src={imageUrl}
             alt={index === activeImageIndex ? productName : ''}
             aria-hidden={index !== activeImageIndex}
-            className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 ease-in-out group-hover:scale-105 ${
+            className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
               index === activeImageIndex ? 'opacity-100' : 'opacity-0'
             } ${outOfStock ? 'grayscale-[40%]' : ''}`}
           />
         ))}
 
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/18 to-transparent" />
+
         {slideshowImages.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/25 px-1.5 py-1 backdrop-blur-sm sm:bottom-3 sm:gap-1.5 sm:px-2">
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/85 px-1.5 py-1 shadow-sm backdrop-blur-sm sm:bottom-3 sm:gap-1.5 sm:px-2">
             {slideshowImages.map((_, index) => (
               <span
                 key={index}
                 aria-hidden="true"
                 className={`h-1 rounded-full transition-all duration-300 sm:h-1.5 ${
-                  index === activeImageIndex ? 'w-3 bg-white sm:w-4' : 'w-1 bg-white/55 sm:w-1.5'
+                  index === activeImageIndex ? 'w-3 bg-slate-900 sm:w-4' : 'w-1 bg-slate-300 sm:w-1.5'
                 }`}
               />
             ))}
@@ -91,17 +99,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBa
 
         <div className="absolute left-2 top-2 flex flex-col gap-1.5 sm:left-4 sm:top-4 sm:gap-2">
           {outOfStock && (
-            <div className="rounded-md bg-red-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
+            <div className="rounded-full bg-red-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:px-3 sm:text-[10px]">
               {translations.outOfStock[language]}
             </div>
           )}
           {hasWholesalePrice && (
-            <div className="rounded-md bg-slate-900 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
+            <div className="rounded-full bg-slate-900 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:px-3 sm:text-[10px]">
               Wholesale
             </div>
           )}
           {product.isNew && (
-            <div className="rounded-md bg-emerald-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
+            <div className="rounded-full bg-emerald-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:px-3 sm:text-[10px]">
               {translations.new[language]}
             </div>
           )}
@@ -113,14 +121,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBa
             onToggleLike?.();
           }}
           aria-label={isLiked ? 'Remove from favorites' : 'Add to favorites'}
-          className={`absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur transition-all duration-300 sm:right-3 sm:top-3 ${
+          className={`absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full shadow-sm backdrop-blur transition-all duration-300 sm:right-3 sm:top-3 ${
             isLiked
               ? 'bg-red-500 text-white'
-              : 'bg-slate-900/10 text-slate-400 hover:bg-white hover:text-red-500 hover:shadow-md'
+              : 'bg-white/85 text-slate-400 hover:bg-white hover:text-red-500 hover:shadow-md'
           }`}
         >
           <svg
-            className={`w-4 h-4 transition-transform duration-300 ${isLiked ? 'fill-current' : 'fill-none'}`}
+            className={`h-4 w-4 transition-transform duration-300 ${isLiked ? 'fill-current' : 'fill-none'}`}
             stroke="currentColor"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -135,24 +143,32 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBa
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col p-3 sm:p-5">
-        <h3 className="mb-1 line-clamp-2 min-h-[2.5rem] text-sm font-black leading-snug text-slate-900 sm:min-h-[2.75rem] sm:text-base">
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <h3 className="mb-2 line-clamp-2 min-h-[2.35rem] text-[15px] font-black leading-tight text-slate-950 sm:min-h-[2.5rem] sm:text-base">
           {productName}
         </h3>
-        <span className="mb-3 block truncate text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">
-          {product.itemCode}{product.dimensions ? ` - ${product.dimensions}` : ''}
-        </span>
 
-        <div className="mt-auto space-y-3">
+        <div className="mb-3 flex min-h-6 flex-wrap items-center gap-1.5">
+          <span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+            {product.itemCode}
+          </span>
+          {product.dimensions ? (
+            <span className="rounded-md bg-slate-50 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
+              {product.dimensions}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-auto space-y-3 border-t border-slate-100 pt-3">
           <div className="min-h-6">
             {hasWholesalePrice ? (
               <>
-                <span className="break-words font-serif text-base font-black text-emerald-600 sm:text-lg">
+                <span className="break-words text-sm font-black text-emerald-600 sm:text-base">
                   {formatUsdPrice(product.wholesalePriceUsd!)}
                 </span>
                 {product.price != null ? (
-                  <div className="mt-2 text-sm text-slate-500">
-                    <span className="block uppercase tracking-widest text-[9px] font-black text-slate-400 mb-0.5">
+                  <div className="mt-1.5 text-xs text-slate-500">
+                    <span className="mb-0.5 block text-[9px] font-black uppercase tracking-widest text-slate-400">
                       {translations.normalPrice[language]}
                     </span>
                     <span className="font-bold text-slate-700 line-through">
@@ -162,23 +178,27 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBa
                 ) : null}
               </>
             ) : product.price != null ? (
-              <span className="break-words font-serif text-base font-black text-slate-900 sm:text-lg">
+              <span className="break-words text-sm font-black text-slate-950 sm:text-base">
                 {formatKztPrice(product.price.toString())}
               </span>
             ) : (
-              <span className="break-words font-serif text-base font-black text-slate-900 sm:text-lg">
+              <span className="inline-flex rounded-md bg-blue-50 px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wide text-blue-700">
                 {translations.priceOnRequestShort[language]}
               </span>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {onAddToBasket ? (
               <button
                 type="button"
                 onClick={() => onAddToBasket(product)}
-                className="h-10 min-w-0 rounded-lg bg-slate-900 px-3 text-xs font-black text-white transition-colors hover:bg-slate-800 sm:text-sm"
+                disabled={outOfStock}
+                className="flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-lg bg-slate-950 px-2 text-xs font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-10"
               >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
                 {translations.buy[language]}
               </button>
             ) : null}
@@ -186,7 +206,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, onAddToBa
             <button
               type="button"
               onClick={() => onInquire(product)}
-              className="h-10 min-w-0 rounded-lg border border-gray-200 bg-white px-3 text-xs font-black text-slate-800 transition-colors hover:border-slate-900 hover:bg-slate-900 hover:text-white sm:text-sm"
+              className="h-9 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-xs font-black text-slate-800 transition-colors hover:border-slate-900 hover:bg-slate-900 hover:text-white sm:h-10"
             >
               {translations.details[language]}
             </button>
