@@ -1,5 +1,7 @@
 from django import forms
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from .models import Product, ProductImage, WholesaleCustomer
 
@@ -46,6 +48,7 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["wholesale_price_usd"].label = "Wholesale price (USD)"
         obj = self.instance
 
         # Populate language fields from JSON
@@ -153,3 +156,25 @@ class WholesaleCustomerAdmin(admin.ModelAdmin):
     list_display = ("user", "company_name", "is_approved", "updated_at")
     list_filter = ("is_approved",)
     search_fields = ("user__email", "user__username", "user__first_name", "company_name")
+
+
+class WholesaleCustomerInline(admin.StackedInline):
+    model = WholesaleCustomer
+    can_delete = False
+    extra = 0
+    max_num = 1
+    fields = ("is_approved", "company_name", "notes")
+    verbose_name_plural = "Wholesale access"
+
+
+User = get_user_model()
+
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
+
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    inlines = (*BaseUserAdmin.inlines, WholesaleCustomerInline)
