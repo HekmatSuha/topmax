@@ -170,6 +170,11 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
                       {user.email && (
                         <p className="text-xs font-medium text-slate-400 truncate mt-0.5">{user.email}</p>
                       )}
+                      {user.isWholesale && (
+                        <span className="mt-2 inline-flex rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                          Wholesale
+                        </span>
+                      )}
                     </div>
                     <button 
                       onClick={() => {

@@ -1,9 +1,10 @@
 import json
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 
 User = get_user_model()
@@ -18,11 +19,23 @@ def _parse_json(request):
 
 def _user_payload(user):
     name = user.first_name or user.username
+    try:
+        is_wholesale = bool(user.wholesale_profile.is_approved)
+    except ObjectDoesNotExist:
+        is_wholesale = False
     return {
         "name": name,
         "email": user.email,
         "isGuest": False,
+        "isWholesale": is_wholesale,
     }
+
+
+@require_GET
+def me(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"user": None}, status=401)
+    return JsonResponse({"user": _user_payload(request.user)})
 
 
 @csrf_exempt

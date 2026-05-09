@@ -5,6 +5,9 @@ export const translations: Record<string, Record<Language, string>> = {
   home: { en: 'Home', ru: 'Главная', kk: 'Басты бет' },
   catalog: { en: 'Browse Products', ru: 'Наши товары', kk: 'Біздің тауарлар' },
   contact: { en: 'Contact Us', ru: 'Контакты', kk: 'Байланыс' },
+  priceOnRequest: { en: 'Contact us to know the price', ru: 'Свяжитесь с нами, чтобы узнать цену', kk: 'Бағасын білу үшін бізге хабарласыңыз' },
+  price: { en: 'Price', ru: 'Цена', kk: 'Бағасы' },
+  wholesalePrice: { en: 'Wholesale price', ru: 'Оптовая цена', kk: 'Көтерме бағасы' },
   contactSubtitle: { 
     en: 'Have questions? Our experts are here to help you design your dream bathroom.',
     ru: 'Есть вопросы? Наши эксперты помогут вам создать ванную вашей мечты.',

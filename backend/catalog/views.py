@@ -1,5 +1,6 @@
 import json
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -35,23 +36,33 @@ def _image_payload(img):
     }
 
 
-def _product_payload(product):
+def _can_view_wholesale_prices(user):
+    if not user.is_authenticated:
+        return False
+    try:
+        return bool(user.wholesale_profile.is_approved)
+    except ObjectDoesNotExist:
+        return False
+
+
+def _product_payload(product, user=None):
     uploaded_images = list(product.images.all())
+    can_view_wholesale = _can_view_wholesale_prices(user)
 
     # Legacy URLs from the JSON field
     legacy_urls = [_resolve_image_url(u) for u in product.image_urls]
     # URLs from uploaded images
     uploaded_urls = [img.image.url for img in uploaded_images]
 
-    return {
+    payload = {
         "id": str(product.id),
         "itemCode": product.item_code,
         "name": product.name,
         "category": product.category,
         "description": product.description,
-        "price": product.price,
-        "discountPercent": product.discount_percent,
-        "discountedPrice": round(product.price * (100 - product.discount_percent) / 100) if product.discount_percent else None,
+        "price": None,
+        "discountPercent": 0,
+        "discountedPrice": None,
         "inStock": product.in_stock,
         "isNew": product.is_new,
         "imageUrls": uploaded_urls + legacy_urls if not uploaded_urls else uploaded_urls,
@@ -61,6 +72,10 @@ def _product_payload(product):
         "dimensions": product.dimensions,
         "images": [_image_payload(img) for img in uploaded_images],
     }
+    if can_view_wholesale and product.wholesale_price_usd is not None:
+        payload["wholesalePriceUsd"] = str(product.wholesale_price_usd)
+        payload["isWholesaleVisible"] = True
+    return payload
 
 
 def _validate_product_payload(payload):
@@ -72,6 +87,14 @@ def _validate_product_payload(payload):
     if price is not None:
         if not isinstance(price, int) or price < 0:
             errors.append("price must be a positive integer.")
+
+    wholesale_price_usd = payload.get("wholesalePriceUsd")
+    if wholesale_price_usd is not None:
+        try:
+            if float(wholesale_price_usd) < 0:
+                errors.append("wholesalePriceUsd must be a positive number.")
+        except (TypeError, ValueError):
+            errors.append("wholesalePriceUsd must be a positive number.")
 
     # category
     category = payload.get("category")
@@ -125,7 +148,7 @@ def products_api(request):
     if request.method == "GET":
         products = Product.objects.prefetch_related("images").all()
         return JsonResponse(
-            {"products": [_product_payload(p) for p in products]}
+            {"products": [_product_payload(p, request.user) for p in products]}
         )
 
     # --- CREATE ---
@@ -154,6 +177,7 @@ def products_api(request):
             category=payload["category"],
             description=payload["description"],
             price=payload["price"],
+            wholesale_price_usd=payload.get("wholesalePriceUsd"),
             discount_percent=payload.get("discountPercent", 0),
             in_stock=payload.get("inStock", True),
             is_new=payload.get("isNew", False),
@@ -166,7 +190,7 @@ def products_api(request):
     except Exception as exc:
         return JsonResponse({"error": str(exc)}, status=400)
 
-    return JsonResponse({"product": _product_payload(product)}, status=201)
+    return JsonResponse({"product": _product_payload(product, request.user)}, status=201)
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +207,7 @@ def product_detail_api(request, pk):
 
     # --- GET single product ---
     if request.method == "GET":
-        return JsonResponse({"product": _product_payload(product)})
+        return JsonResponse({"product": _product_payload(product, request.user)})
 
     # --- DELETE ---
     if request.method == "DELETE":
@@ -206,6 +230,7 @@ def product_detail_api(request, pk):
         "category": "category",
         "description": "description",
         "price": "price",
+        "wholesalePriceUsd": "wholesale_price_usd",
         "discountPercent": "discount_percent",
         "inStock": "in_stock",
         "isNew": "is_new",
@@ -225,7 +250,7 @@ def product_detail_api(request, pk):
         return JsonResponse({"error": str(exc)}, status=400)
 
     product.refresh_from_db()
-    return JsonResponse({"product": _product_payload(product)})
+    return JsonResponse({"product": _product_payload(product, request.user)})
 
 
 # ---------------------------------------------------------------------------

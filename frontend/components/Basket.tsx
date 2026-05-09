@@ -12,12 +12,17 @@ interface BasketProps {
   language: Language;
 }
 
-const getEffectivePrice = (item: BasketItem) =>
-  item.discountPercent > 0 && item.discountedPrice != null ? item.discountedPrice : item.price;
+const hasWholesalePrice = (item: BasketItem) => item.isWholesaleVisible && item.wholesalePriceUsd;
+const getWholesalePrice = (item: BasketItem) => Number(item.wholesalePriceUsd || 0);
+const formatKzt = (price: number) => `${price.toLocaleString()} ₸`;
+const formatUsd = (price: number) => `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onContinueShopping, language }) => {
   const t = translations;
-  const total = items.reduce((sum, item) => sum + getEffectivePrice(item) * item.quantity, 0);
+  const isWholesaleList = items.length > 0 && items.every(hasWholesalePrice);
+  const total = isWholesaleList
+    ? items.reduce((sum, item) => sum + getWholesalePrice(item) * item.quantity, 0)
+    : 0;
 
   const handleConfirmPurchase = () => {
     if (items.length === 0) return;
@@ -25,12 +30,15 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
     const orderDetails = items
       .map(item => {
         const colorName = item.selectedColor ? t[item.selectedColor][language] : 'Standard';
-        const ep = getEffectivePrice(item);
-        return `• *${item.name[language]}* (x${item.quantity})\n  Finish: ${colorName}\n  Price: ${ep.toLocaleString()} ₸\n  Link: https://topmax.kz/?product=${item.id}\n`;
+        const ep = isWholesaleList && hasWholesalePrice(item) ? getWholesalePrice(item) : 0;
+        const formattedPrice = isWholesaleList ? formatUsd(ep) : t.priceOnRequest[language];
+        return `• *${item.name[language]}* (x${item.quantity})\n  Code: ${item.itemCode}\n  Finish: ${colorName}\n  Price: ${formattedPrice}\n  Link: https://topmax.kz/?product=${item.id}\n`;
       })
       .join('\n');
 
-    const message = `${t.waMsgHeader[language]}\n\n${t.waMsgIntro[language]}\n\n${orderDetails}\n*${t.waMsgTotal[language]}: ${total.toLocaleString()} ₸*\n\n${t.waMsgFooter[language]}`;
+    const header = isWholesaleList ? 'TOPMAX wholesale shop list' : t.waMsgHeader[language];
+    const totalText = isWholesaleList ? `\n*${t.waMsgTotal[language]}: ${formatUsd(total)}*` : '';
+    const message = `${header}\n\n${t.waMsgIntro[language]}\n\n${orderDetails}${totalText}\n\n${t.waMsgFooter[language]}`;
 
     const whatsappUrl = `https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -62,8 +70,6 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-6">
             {items.map((item, idx) => {
-              const hasDiscount = item.discountPercent > 0 && item.discountedPrice != null;
-              const ep = getEffectivePrice(item);
               return (
                 <div key={`${item.id}-${item.selectedColor}-${idx}`} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center gap-6 group relative">
                   <div className="w-32 h-32 bg-gray-50 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
@@ -77,19 +83,17 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
                           {t[item.selectedColor][language]}
                         </span>
                       )}
-                      {hasDiscount && (
-                        <span className="bg-orange-500 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full">
-                          -{item.discountPercent}%
-                        </span>
-                      )}
                     </div>
                     <h3 className="text-xl font-black text-slate-900 mb-1">{item.name[language]}</h3>
                     <div className="flex items-center justify-center sm:justify-start gap-6 mt-4">
                        <div className="flex items-baseline gap-2">
-                         {hasDiscount && (
-                           <span className="text-sm font-serif font-bold text-slate-400 line-through">{(item.price * item.quantity).toLocaleString()} ₸</span>
+                         {isWholesaleList && hasWholesalePrice(item) ? (
+                           <span className="text-2xl font-serif font-black text-emerald-500">{formatUsd(getWholesalePrice(item) * item.quantity)}</span>
+                         ) : (
+                           <span className="max-w-56 text-sm font-black uppercase leading-snug tracking-wide text-blue-600">
+                             {t.priceOnRequest[language]}
+                           </span>
                          )}
-                         <span className={`text-2xl font-serif font-black ${hasDiscount ? 'text-red-500' : 'text-blue-600'}`}>{(ep * item.quantity).toLocaleString()} ₸</span>
                        </div>
                        <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-gray-100">
                           <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, Math.max(1, item.quantity - 1))} className="w-10 h-10 flex items-center justify-center text-slate-900 font-black text-xl hover:bg-white rounded-lg">-</button>
@@ -111,11 +115,13 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
                <div className="space-y-4 mb-8">
                  <div className="flex justify-between items-center opacity-40 uppercase tracking-widest font-black text-[10px]">
                     <span>Subtotal</span>
-                    <span>{total.toLocaleString()} ₸</span>
+                    <span>{isWholesaleList ? formatUsd(total) : t.priceOnRequest[language]}</span>
                  </div>
                  <div className="flex justify-between items-center border-t border-white/10 pt-4">
                     <span className="text-sm font-black uppercase tracking-widest">Total</span>
-                    <span className="text-3xl font-serif font-black text-blue-400">{total.toLocaleString()} ₸</span>
+                    <span className={`font-black ${isWholesaleList ? 'text-3xl font-serif text-blue-400' : 'max-w-44 text-right text-sm uppercase leading-snug tracking-wide text-blue-300'}`}>
+                      {isWholesaleList ? formatUsd(total) : t.priceOnRequest[language]}
+                    </span>
                  </div>
                </div>
 

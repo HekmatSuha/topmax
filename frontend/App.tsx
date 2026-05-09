@@ -100,7 +100,9 @@ const App: React.FC = () => {
 
   const t = translations;
 
-  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
+  const formatUsdPrice = (price: string | number) =>
+    `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const hasWholesalePrice = (product: Product) => Boolean(product.isWholesaleVisible && product.wholesalePriceUsd);
   const getLocalizedText = (
     value: Partial<Record<Language, string>> | undefined,
     fallback = ''
@@ -140,6 +142,41 @@ const App: React.FC = () => {
     });
   };
 
+  const loadProducts = () => {
+    setIsProductsLoading(true);
+    fetch(`${BACKEND_BASE_URL}/api/products/`, { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) throw new Error(`Products request failed: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        const normalizedProducts = (data.products || []).map((product: Product) => ({
+          ...product,
+          description: product.description || { en: '', ru: '', kk: '' },
+          features: product.features || { en: [], ru: [], kk: [] },
+          imageUrls: (product.imageUrls || []).map(resolveImageUrl).filter(Boolean),
+          availableColors: (product.availableColors || []).map(normalizeColorKey),
+          images: (product.images || []).map((img: ProductImage) => ({
+            ...img,
+            url: resolveImageUrl(img.url),
+            color: img.color ? normalizeColorKey(img.color) : img.color,
+          })),
+        }));
+        setProducts(normalizedProducts);
+        setProductsError('');
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('product');
+        if (id) openProductById(id, normalizedProducts);
+      })
+      .catch(err => {
+        console.error('Failed to load products:', err);
+        setProductsError('Failed to load products from backend.');
+      })
+      .finally(() => {
+        setIsProductsLoading(false);
+      });
+  };
+
   useEffect(() => {
     const onPopState = (e: PopStateEvent) => {
       const params = new URLSearchParams(window.location.search);
@@ -170,37 +207,22 @@ const App: React.FC = () => {
         setBackendStatus('failed');
       });
 
-    fetch(`${BACKEND_BASE_URL}/api/products/`)
+    loadProducts();
+
+    fetch(`${BACKEND_BASE_URL}/api/auth/me/`, { credentials: 'include' })
       .then(res => {
-        if (!res.ok) throw new Error(`Products request failed: ${res.status}`);
+        if (!res.ok) throw new Error('No active session.');
         return res.json();
       })
       .then(data => {
-        const normalizedProducts = (data.products || []).map((product: Product) => ({
-          ...product,
-          description: product.description || { en: '', ru: '', kk: '' },
-          features: product.features || { en: [], ru: [], kk: [] },
-          imageUrls: (product.imageUrls || []).map(resolveImageUrl).filter(Boolean),
-          availableColors: (product.availableColors || []).map(normalizeColorKey),
-          images: (product.images || []).map((img: ProductImage) => ({
-            ...img,
-            url: resolveImageUrl(img.url),
-            color: img.color ? normalizeColorKey(img.color) : img.color,
-          })),
-        }));
-        setProducts(normalizedProducts);
-        setProductsError('');
-        // Open product from URL on initial load
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('product');
-        if (id) openProductById(id, normalizedProducts);
+        if (data.user) {
+          setUser(data.user);
+          localStorage.setItem('topmax_user', JSON.stringify(data.user));
+        }
       })
-      .catch(err => {
-        console.error('Failed to load products:', err);
-        setProductsError('Failed to load products from backend.');
-      })
-      .finally(() => {
-        setIsProductsLoading(false);
+      .catch(() => {
+        setUser(null);
+        localStorage.removeItem('topmax_user');
       });
 
     // Check local storage for existing session
@@ -299,6 +321,7 @@ const App: React.FC = () => {
     setUser(u);
     setShowAuth(false);
     localStorage.setItem('topmax_user', JSON.stringify(u));
+    loadProducts();
   };
 
   const handleLogout = async () => {
@@ -311,7 +334,9 @@ const App: React.FC = () => {
       console.error('Logout request failed:', err);
     } finally {
       setUser(null);
+      setBasket([]);
       localStorage.removeItem('topmax_user');
+      loadProducts();
     }
   };
 
@@ -450,8 +475,6 @@ const App: React.FC = () => {
         ...getLocalizedSearchValues(product.description),
         ...featureValues,
         ...(product.warranty ? getLocalizedSearchValues(product.warranty) : []),
-        String(product.price),
-        product.discountedPrice != null ? String(product.discountedPrice) : '',
         ...statusValues,
       ],
     };
@@ -995,15 +1018,17 @@ const App: React.FC = () => {
                 <div className="mt-auto pt-6 border-t border-gray-100">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-center sm:text-left">
-                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Price</span>
-                      {selectedProduct.discountPercent > 0 && selectedProduct.discountedPrice != null ? (
-                        <div className="flex items-baseline gap-3">
-                          <span className="text-lg sm:text-xl font-serif font-bold text-slate-400 line-through">{formatPrice(selectedProduct.price)}</span>
-                          <span className="text-3xl sm:text-4xl font-serif font-black text-red-500">{formatPrice(selectedProduct.discountedPrice)}</span>
-                          <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded-md">-{selectedProduct.discountPercent}%</span>
-                        </div>
+                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                        {hasWholesalePrice(selectedProduct) ? t.wholesalePrice[language] : t.price[language]}
+                      </span>
+                      {hasWholesalePrice(selectedProduct) ? (
+                        <span className="text-3xl sm:text-4xl font-serif font-black text-emerald-600">
+                          {formatUsdPrice(selectedProduct.wholesalePriceUsd!)}
+                        </span>
                       ) : (
-                        <span className="text-3xl sm:text-4xl font-serif font-black text-blue-600">{formatPrice(selectedProduct.price)}</span>
+                        <span className="block max-w-xs text-lg font-black uppercase leading-snug tracking-wide text-blue-600">
+                          {t.priceOnRequest[language]}
+                        </span>
                       )}
                     </div>
                     {selectedProduct.inStock === false ? (

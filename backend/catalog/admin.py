@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Product, ProductImage
+from .models import Product, ProductImage, WholesaleCustomer
 
 LANGUAGES = ("en", "ru", "kk")
 LANGUAGE_LABELS = {"en": "English", "ru": "Russian", "kk": "Kazakh"}
@@ -41,7 +41,7 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            "item_code", "category", "price", "discount_percent", "dimensions", "in_stock", "is_new",
+            "item_code", "category", "price", "wholesale_price_usd", "discount_percent", "dimensions", "in_stock", "is_new",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -117,14 +117,14 @@ class ProductImageInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
-    list_display = ("item_code", "category", "price", "discount_percent", "in_stock", "is_new", "image_count", "updated_at")
+    list_display = ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "in_stock", "is_new", "image_count", "updated_at")
     search_fields = ("item_code", "category")
     list_filter = ("category", "in_stock")
     inlines = [ProductImageInline]
 
     fieldsets = (
         (None, {
-            "fields": ("item_code", "category", "price", "discount_percent", "dimensions", "in_stock", "is_new"),
+            "fields": ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "dimensions", "in_stock", "is_new"),
         }),
         ("Name", {
             "fields": ("name_en", "name_ru", "name_kk"),
@@ -146,3 +146,10 @@ class ProductAdmin(admin.ModelAdmin):
     def image_count(self, obj):
         return obj.images.count()
     image_count.short_description = "Images"
+
+
+@admin.register(WholesaleCustomer)
+class WholesaleCustomerAdmin(admin.ModelAdmin):
+    list_display = ("user", "company_name", "is_approved", "updated_at")
+    list_filter = ("is_approved",)
+    search_fields = ("user__email", "user__username", "user__first_name", "company_name")

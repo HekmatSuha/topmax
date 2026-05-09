@@ -12,8 +12,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language, isLiked, onToggleLike }) => {
   const outOfStock = product.inStock === false;
-  const hasDiscount = product.discountPercent > 0 && product.discountedPrice != null;
-  const displayPrice = hasDiscount ? product.discountedPrice! : product.price;
+  const hasWholesalePrice = product.isWholesaleVisible && product.wholesalePriceUsd;
   const productName = product.name[language] || product.name.en;
   const productDescription = product.description[language] || product.description.en;
   const slideshowImages = useMemo(() => {
@@ -32,7 +31,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
   }, [product.images, product.imageUrls]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
+  const formatUsdPrice = (price: string) => `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   useEffect(() => {
     setActiveImageIndex(0);
@@ -90,9 +89,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
               {translations.outOfStock[language]}
             </div>
           )}
-          {hasDiscount && (
-            <div className="rounded-md bg-orange-500 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
-              -{product.discountPercent}%
+          {hasWholesalePrice && (
+            <div className="rounded-md bg-slate-900 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:rounded-lg sm:px-3 sm:py-1.5 sm:text-[10px]">
+              Wholesale
             </div>
           )}
           {product.isNew && (
@@ -147,14 +146,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onInquire, language,
         </p>
         <div className="mt-auto flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="flex min-w-0 flex-wrap items-baseline gap-1.5 sm:gap-2">
-            {hasDiscount && (
-              <span className="font-serif text-[11px] font-bold text-slate-400 line-through sm:text-sm">
-                {formatPrice(product.price)}
+            {hasWholesalePrice ? (
+              <span className="break-words font-serif text-base font-black text-emerald-600 sm:text-xl">
+                {formatUsdPrice(product.wholesalePriceUsd!)}
+              </span>
+            ) : (
+              <span className="max-w-36 text-xs font-black uppercase leading-snug tracking-wide text-blue-600 sm:max-w-44">
+                {translations.priceOnRequest[language]}
               </span>
             )}
-            <span className={`break-words font-serif text-base font-black sm:text-xl ${hasDiscount ? 'text-red-500' : 'text-blue-600'}`}>
-              {formatPrice(displayPrice)}
-            </span>
           </div>
           <button
             onClick={() => onInquire(product)}

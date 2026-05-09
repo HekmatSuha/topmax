@@ -11,6 +11,7 @@ export interface User {
   name: string;
   email: string;
   isGuest: boolean;
+  isWholesale?: boolean;
 }
 
 export interface ProductImage {
@@ -28,7 +29,9 @@ export interface Product {
   name: LocalizedString;
   category: 'Baths' | 'Taps' | 'Closets' | 'Mirrors' | 'Accessories' | 'Basins' | 'Dryers' | 'Others';
   description: LocalizedString;
-  price: number;
+  price: number | null;
+  wholesalePriceUsd?: string;
+  isWholesaleVisible?: boolean;
   discountPercent: number;
   discountedPrice: number | null;
   inStock: boolean;
