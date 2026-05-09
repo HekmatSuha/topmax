@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
-from .models import Product, ProductImage, WholesaleCustomer
+from .models import Product, ProductImage, WholesaleCustomer, SiteSettings
 
 LANGUAGES = ("en", "ru", "kk")
 LANGUAGE_LABELS = {"en": "English", "ru": "Russian", "kk": "Kazakh"}
@@ -156,6 +156,19 @@ class WholesaleCustomerAdmin(admin.ModelAdmin):
     list_display = ("user", "company_name", "is_approved", "updated_at")
     list_filter = ("is_approved",)
     search_fields = ("user__email", "user__username", "user__first_name", "company_name")
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    list_display = ("show_normal_prices",)
+    fields = ("show_normal_prices",)
+
+    def has_add_permission(self, request):
+        # Only allow one instance
+        return not SiteSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class WholesaleCustomerInline(admin.StackedInline):

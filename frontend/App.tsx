@@ -102,6 +102,8 @@ const App: React.FC = () => {
 
   const formatUsdPrice = (price: string | number) =>
     `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatKztPrice = (price: string | number) =>
+    `${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₸`;
   const hasWholesalePrice = (product: Product) => Boolean(product.isWholesaleVisible && product.wholesalePriceUsd);
   const getLocalizedText = (
     value: Partial<Record<Language, string>> | undefined,
@@ -782,6 +784,7 @@ const App: React.FC = () => {
                     key={product.id} 
                     product={product} 
                     onInquire={handleSelectProduct}
+                    onAddToBasket={addToBasket}
                     language={language}
                     isLiked={likedIds.includes(product.id)}
                     onToggleLike={() => toggleLike(product.id)}
@@ -1025,10 +1028,24 @@ const App: React.FC = () => {
                         <span className="text-3xl sm:text-4xl font-serif font-black text-emerald-600">
                           {formatUsdPrice(selectedProduct.wholesalePriceUsd!)}
                         </span>
+                      ) : selectedProduct.price != null ? (
+                        <span className="text-3xl sm:text-4xl font-serif font-black text-slate-900">
+                          {formatKztPrice(selectedProduct.price.toString())}
+                        </span>
                       ) : (
                         <span className="block max-w-xs text-lg font-black uppercase leading-snug tracking-wide text-blue-600">
                           {t.priceOnRequest[language]}
                         </span>
+                      )}
+                      {hasWholesalePrice(selectedProduct) && selectedProduct.price != null && (
+                        <div className="mt-2">
+                          <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                            {t.normalPrice[language]}
+                          </span>
+                          <span className="text-xl font-serif font-black text-slate-600">
+                            {formatKztPrice(selectedProduct.price.toString())}
+                          </span>
+                        </div>
                       )}
                     </div>
                     {selectedProduct.inStock === false ? (

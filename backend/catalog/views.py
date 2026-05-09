@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 
-from .models import Product, ProductImage
+from .models import Product, ProductImage, SiteSettings
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +48,7 @@ def _can_view_wholesale_prices(user):
 def _product_payload(product, user=None):
     uploaded_images = list(product.images.all())
     can_view_wholesale = _can_view_wholesale_prices(user)
+    show_normal_prices = SiteSettings.objects.first().show_normal_prices if SiteSettings.objects.exists() else False
 
     # Legacy URLs from the JSON field
     legacy_urls = [_resolve_image_url(u) for u in product.image_urls]
@@ -60,7 +61,7 @@ def _product_payload(product, user=None):
         "name": product.name,
         "category": product.category,
         "description": product.description,
-        "price": None,
+        "price": product.price if show_normal_prices else None,
         "discountPercent": 0,
         "discountedPrice": None,
         "inStock": product.in_stock,

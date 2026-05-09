@@ -85,3 +85,14 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product.item_code} (order={self.sort_order})"
+
+
+class SiteSettings(models.Model):
+    show_normal_prices = models.BooleanField(default=False, help_text="Show normal prices for all products in frontend.")
+
+    class Meta:
+        verbose_name = "Site Setting"
+        verbose_name_plural = "Site Settings"
+
+    def __str__(self):
+        return "Site Settings"

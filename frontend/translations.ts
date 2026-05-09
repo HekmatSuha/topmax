@@ -6,8 +6,10 @@ export const translations: Record<string, Record<Language, string>> = {
   catalog: { en: 'Browse Products', ru: 'Наши товары', kk: 'Біздің тауарлар' },
   contact: { en: 'Contact Us', ru: 'Контакты', kk: 'Байланыс' },
   priceOnRequest: { en: 'Contact us to know the price', ru: 'Свяжитесь с нами, чтобы узнать цену', kk: 'Бағасын білу үшін бізге хабарласыңыз' },
+  priceOnRequestShort: { en: 'Price on request', ru: 'Цена по запросу', kk: 'Баға сұрау' },
   price: { en: 'Price', ru: 'Цена', kk: 'Бағасы' },
   wholesalePrice: { en: 'Wholesale price', ru: 'Оптовая цена', kk: 'Көтерме бағасы' },
+  normalPrice: { en: 'Normal price', ru: 'Обычная цена', kk: 'Қалыпты бағасы' },
   contactSubtitle: { 
     en: 'Have questions? Our experts are here to help you design your dream bathroom.',
     ru: 'Есть вопросы? Наши эксперты помогут вам создать ванную вашей мечты.',
@@ -46,6 +48,7 @@ export const translations: Record<string, Record<Language, string>> = {
   premiumCollections: { en: 'Your one-stop shop for premium sanitary ware.', ru: 'Всё для вашей ванной комнаты в одном месте.', kk: 'Сантехниканың барлығы бір жерде.' },
   all: { en: 'All Items', ru: 'Все товары', kk: 'Барлық тауарлар' },
   details: { en: 'View Details', ru: 'Посмотреть', kk: 'Көру' },
+  buy: { en: 'Buy', ru: 'Купить', kk: 'Сатып алу' },
   addToBasket: { en: 'Put in Basket', ru: 'Положить в корзину', kk: 'Себетке салу' },
   addedToBasket: { en: 'Item Saved!', ru: 'Товар сохранен!', kk: 'Тауар сақталды!' },
   buyElsePrompt: { en: 'Would you like to find anything else?', ru: 'Хотите найти что-нибудь еще?', kk: 'Тағы бірдеңе іздегіңіз келе ме?' },
