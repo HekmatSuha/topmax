@@ -188,27 +188,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-1.5 sm:gap-2">
             {onAddToBasket ? (
               <button
                 type="button"
                 onClick={() => onAddToBasket(product)}
                 disabled={outOfStock}
-                className="flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-lg bg-slate-950 px-2 text-xs font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-10"
+                className="flex h-9 min-w-0 items-center justify-center gap-1 rounded-lg bg-slate-950 px-1.5 text-[11px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-10 sm:gap-1.5 sm:px-2 sm:text-xs"
               >
                 <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
-                {translations.buy[language]}
+                <span className="min-w-0 truncate">{translations.buy[language]}</span>
               </button>
             ) : null}
 
             <button
               type="button"
               onClick={() => onInquire(product)}
-              className="h-9 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-xs font-black text-slate-800 transition-colors hover:border-slate-900 hover:bg-slate-900 hover:text-white sm:h-10"
+              className="flex h-9 min-w-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-1.5 text-[11px] font-black text-slate-800 transition-colors hover:border-slate-900 hover:bg-slate-900 hover:text-white sm:h-10 sm:px-2 sm:text-xs"
             >
-              {translations.details[language]}
+              <span className="min-w-0 truncate">{translations.details[language]}</span>
             </button>
           </div>
         </div>

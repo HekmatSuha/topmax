@@ -866,8 +866,8 @@ const App: React.FC = () => {
       {selectedProduct && (
         <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => handleSelectProduct(null)}></div>
-          <div className={`relative bg-white rounded-[2rem] w-full max-w-5xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl transition-all duration-500 transform ${isModalVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
-            <div className="sticky top-0 z-40 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 bg-white/90 backdrop-blur-md border-b border-gray-100 p-4 sm:p-5">
+          <div className={`relative w-full max-w-6xl max-h-[92vh] overflow-y-auto custom-scrollbar rounded-[2rem] bg-white shadow-2xl transition-all duration-500 transform ${isModalVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-8'}`}>
+            <div className="sticky top-0 z-40 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-100 bg-white/92 p-4 backdrop-blur-md sm:p-5">
                <button onClick={() => handleSelectProduct(null)} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-900 font-bold transition-all">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                   <span className="hidden sm:inline text-sm uppercase tracking-widest">Back</span>
@@ -900,24 +900,24 @@ const App: React.FC = () => {
                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2">
-              <div className="relative bg-gray-50 flex flex-col items-center justify-center p-6 lg:p-8 border-r border-gray-100">
-                 <div className="w-full h-[250px] lg:h-[350px] flex items-center justify-center mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="relative flex min-h-[420px] flex-col justify-center border-r border-slate-100 bg-slate-50 p-4 sm:p-6 lg:p-8">
+                 <div className="flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 lg:min-h-[520px]">
                     <img
                       src={visibleImageUrls[activeImageIndex] || PLACEHOLDER_IMAGE}
                       alt={getLocalizedText(selectedProduct.name, selectedProduct.itemCode)}
-                      className="max-w-full max-h-full object-contain mix-blend-multiply transition-all duration-500"
+                      className="h-full max-h-[520px] w-full object-contain p-3 transition-all duration-500 sm:p-5"
                     />
                  </div>
 
-                 {visibleImageUrls.length > 1 && (
-                   <div className="flex gap-3 overflow-x-auto pb-3 px-2 max-w-full no-scrollbar">
+                 {visibleImageUrls.length > 0 && (
+                   <div className="no-scrollbar mt-4 flex max-w-full gap-3 overflow-x-auto px-1 pb-1">
                       {visibleImageUrls.map((url, index) => (
                         <button
                           key={index}
                           onClick={() => setActiveImageIndex(index)}
-                          className={`w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
-                            activeImageIndex === index ? 'border-blue-600 ring-3 ring-blue-50 scale-105 shadow-md' : 'border-white opacity-60 hover:opacity-100 hover:scale-105'
+                          className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border bg-white transition-all ${
+                            activeImageIndex === index ? 'border-blue-600 ring-4 ring-blue-50 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'
                           }`}
                         >
                           <img src={url} alt="" className="w-full h-full object-cover" />
@@ -927,63 +927,69 @@ const App: React.FC = () => {
                  )}
               </div>
 
-              <div className="p-6 sm:p-8 flex flex-col justify-center bg-white">
-                <div className="mb-1">
-                  <span className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase">ITEM CODE: {selectedProduct.itemCode}</span>
+              <div className="bg-white p-5 sm:p-7 lg:p-9">
+                <div className="lg:sticky lg:top-24">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    {selectedProduct.itemCode}
+                  </span>
+                  <span className="rounded-md bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-blue-600">
+                    {t[selectedProduct.category][language]}
+                  </span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-serif font-black text-slate-900 mb-4 leading-tight">
+                <h2 className="mb-4 text-3xl font-black leading-tight text-slate-950 sm:text-4xl">
                   {selectedProduct.name[language]}
                 </h2>
 
-                <div className="flex flex-wrap gap-2 mb-5">
+                <div className="mb-5 flex flex-wrap gap-2">
                   {selectedProduct.dimensions && (
-                    <div className="inline-flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-lg border border-slate-800 shadow-sm">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-700 shadow-sm">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                       <span className="text-[10px] font-black uppercase tracking-widest">{selectedProduct.dimensions}</span>
                     </div>
                   )}
-                  <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-blue-700">
                     <span className="text-[10px] font-black uppercase tracking-widest">{t.premiumQuality[language]}</span>
                   </div>
                   {selectedProduct.inStock === false ? (
-                    <div className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-red-100 bg-red-50 px-3 py-1.5 text-red-600">
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.outOfStock[language]}</span>
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1.5 rounded-lg border border-green-100">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-green-100 bg-green-50 px-3 py-1.5 text-green-600">
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.inStock[language]}</span>
                     </div>
                   )}
                   {selectedProduct.isNew && (
-                    <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white px-3 py-1.5 rounded-lg shadow-sm">
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1.5 text-white shadow-sm">
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.new[language]}</span>
                     </div>
                   )}
                 </div>
 
-                <p className="text-slate-500 text-sm font-light mb-6 leading-relaxed">
+                <p className="mb-6 max-w-xl text-sm font-medium leading-7 text-slate-500">
                   {getLocalizedText(selectedProduct.description, t.premiumQuality[language])}
                 </p>
 
                 {selectedProduct.availableColors && selectedProduct.availableColors.length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{t.selectFinish[language]}</h4>
+                    <h4 className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{t.selectFinish[language]}</h4>
                     <div className="flex flex-wrap gap-3">
                       {selectedProduct.availableColors.map(colorKey => (
                         <button
                           key={colorKey}
                           onClick={() => { setSelectedColor(colorKey); setActiveImageIndex(0); }}
-                          className={`group relative flex flex-col items-center gap-1.5 transition-all ${
-                            selectedColor === colorKey ? 'scale-110' : 'opacity-60 hover:opacity-100 hover:scale-105'
+                          className={`group relative flex items-center gap-2 rounded-xl border px-2 py-2 transition-all ${
+                            selectedColor === colorKey ? 'border-blue-600 bg-blue-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'
                           }`}
                         >
                           <div
-                            className={`w-10 h-10 rounded-xl border-3 transition-all shadow-sm ${
-                              selectedColor === colorKey ? 'border-blue-600 ring-4 ring-blue-50 shadow-blue-100' : 'border-white'
+                            className={`h-9 w-9 rounded-lg border transition-all shadow-sm ${
+                              selectedColor === colorKey ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200'
                             }`}
                             style={{ background: getColorHex(colorKey) }}
                           />
-                          <span className={`text-[9px] font-black uppercase tracking-tighter ${selectedColor === colorKey ? 'text-blue-600' : 'text-slate-400'}`}>
+                          <span className={`max-w-24 truncate text-[10px] font-black uppercase tracking-wide ${selectedColor === colorKey ? 'text-blue-600' : 'text-slate-500'}`}>
                              {t[normalizeColorKey(colorKey)]?.[language] ?? colorKey}
                           </span>
                         </button>
@@ -993,11 +999,11 @@ const App: React.FC = () => {
                 )}
 
                 <div className="mb-6">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{t.keyFeatures[language]}</h4>
-                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6">
+                   <h4 className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{t.keyFeatures[language]}</h4>
+                   <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {(selectedProduct.features?.[language] || selectedProduct.features?.en || []).map((feature, i) => (
-                        <li key={i} className="flex items-center gap-2 text-slate-700 text-xs font-bold">
-                           <span className="flex-shrink-0 w-5 h-5 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-[10px]">
+                        <li key={i} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">
+                           <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-50 text-[10px] text-green-600">
                              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                              </svg>
@@ -1006,8 +1012,8 @@ const App: React.FC = () => {
                         </li>
                       ))}
                       {(selectedProduct.warranty?.[language] || t.warranty[language]) && (
-                        <li className="flex items-center gap-2 text-blue-600 text-xs font-bold">
-                           <span className="flex-shrink-0 w-5 h-5 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-[10px]">
+                        <li className="flex min-h-11 items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700">
+                           <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white text-[10px] text-blue-600">
                              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" />
                              </svg>
@@ -1018,23 +1024,23 @@ const App: React.FC = () => {
                    </ul>
                 </div>
 
-                <div className="mt-auto pt-6 border-t border-gray-100">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-center sm:text-left">
+                <div className="mt-auto rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-left">
                       <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
                         {hasWholesalePrice(selectedProduct) ? t.wholesalePrice[language] : t.price[language]}
                       </span>
                       {hasWholesalePrice(selectedProduct) ? (
-                        <span className="text-3xl sm:text-4xl font-serif font-black text-emerald-600">
+                        <span className="text-2xl font-black text-emerald-600 sm:text-3xl">
                           {formatUsdPrice(selectedProduct.wholesalePriceUsd!)}
                         </span>
                       ) : selectedProduct.price != null ? (
-                        <span className="text-3xl sm:text-4xl font-serif font-black text-slate-900">
+                        <span className="text-2xl font-black text-slate-900 sm:text-3xl">
                           {formatKztPrice(selectedProduct.price.toString())}
                         </span>
                       ) : (
-                        <span className="block max-w-xs text-lg font-black uppercase leading-snug tracking-wide text-blue-600">
-                          {t.priceOnRequest[language]}
+                        <span className="inline-flex rounded-lg bg-white px-3 py-2 text-sm font-black uppercase tracking-wide text-blue-700 shadow-sm ring-1 ring-blue-100">
+                          {t.priceOnRequestShort[language]}
                         </span>
                       )}
                       {hasWholesalePrice(selectedProduct) && selectedProduct.price != null && (
@@ -1042,20 +1048,20 @@ const App: React.FC = () => {
                           <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
                             {t.normalPrice[language]}
                           </span>
-                          <span className="text-xl font-serif font-black text-slate-600">
+                          <span className="text-base font-black text-slate-600">
                             {formatKztPrice(selectedProduct.price.toString())}
                           </span>
                         </div>
                       )}
                     </div>
                     {selectedProduct.inStock === false ? (
-                      <div className="w-full sm:w-auto bg-gray-300 text-gray-500 px-8 py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 cursor-not-allowed">
+                      <div className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl bg-gray-300 px-6 text-sm font-black text-gray-500 sm:w-auto">
                         {t.outOfStock[language]}
                       </div>
                     ) : (
                       <button
                         onClick={() => addToBasket(selectedProduct)}
-                        className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-base hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 active:scale-95"
+                        className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-blue-600 px-6 text-sm font-black text-white shadow-lg shadow-blue-100 transition-all hover:bg-blue-700 active:scale-95 sm:w-auto"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -1064,6 +1070,7 @@ const App: React.FC = () => {
                       </button>
                     )}
                   </div>
+                </div>
                 </div>
               </div>
             </div>
