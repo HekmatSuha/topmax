@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 
-from .models import Product, ProductImage, SiteSettings
+from .models import Product, ProductImage, SiteSettings, default_warranty
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ def _validate_product_payload(payload):
             errors.append("imageUrls must be a list of strings.")
 
     # name, description, features — should be dicts
-    for field in ("name", "description", "features"):
+    for field in ("name", "description", "features", "warranty"):
         value = payload.get(field)
         if value is not None and not isinstance(value, dict):
             errors.append(f"{field} must be a JSON object.")
@@ -185,7 +185,7 @@ def products_api(request):
             image_urls=payload["imageUrls"],
             available_colors=payload.get("availableColors", []),
             features=payload["features"],
-            warranty=payload.get("warranty", {}),
+            warranty=payload.get("warranty") or default_warranty(),
             dimensions=payload.get("dimensions", ""),
         )
     except Exception as exc:

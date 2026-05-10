@@ -3,10 +3,11 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
-from .models import Product, ProductImage, WholesaleCustomer, SiteSettings
+from .models import Product, ProductImage, WholesaleCustomer, SiteSettings, default_warranty
 
 LANGUAGES = ("en", "ru", "kk")
 LANGUAGE_LABELS = {"en": "English", "ru": "Russian", "kk": "Kazakh"}
+DEFAULT_WARRANTY = default_warranty()
 
 
 # ---------------------------------------------------------------------------
@@ -30,9 +31,9 @@ class ProductForm(forms.ModelForm):
     features_kk = forms.CharField(widget=forms.Textarea(attrs={"rows": 4, "placeholder": "One feature per line"}), required=False, label="Features (Kazakh)")
 
     # --- warranty (one text input per language) ---
-    warranty_en = forms.CharField(max_length=255, required=False, label="Warranty (English)", initial="10 Year Warranty")
-    warranty_ru = forms.CharField(max_length=255, required=False, label="Warranty (Russian)", initial="10 лет гарантии")
-    warranty_kk = forms.CharField(max_length=255, required=False, label="Warranty (Kazakh)", initial="10 жылдық кепілдік")
+    warranty_en = forms.CharField(max_length=255, required=False, label="Warranty (English)", initial=DEFAULT_WARRANTY["en"])
+    warranty_ru = forms.CharField(max_length=255, required=False, label="Warranty (Russian)", initial=DEFAULT_WARRANTY["ru"])
+    warranty_kk = forms.CharField(max_length=255, required=False, label="Warranty (Kazakh)", initial=DEFAULT_WARRANTY["kk"])
 
     # --- image_urls (one URL per line) ---
     image_urls_text = forms.CharField(widget=forms.Textarea(attrs={"rows": 3, "placeholder": "One URL or filename per line"}), required=False, label="Image URLs (legacy)")

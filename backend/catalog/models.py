@@ -4,6 +4,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+def default_warranty():
+    return {
+        "en": "1 Year Warranty",
+        "ru": "1 год гарантии",
+        "kk": "1 жылдық кепілдік",
+    }
+
+
 class Product(models.Model):
     CATEGORY_CHOICES = [
         ("Baths", "Baths"),
@@ -29,7 +37,7 @@ class Product(models.Model):
     description = models.JSONField(default=dict)
     features = models.JSONField(default=dict)
 
-    warranty = models.JSONField(default=dict, blank=True)
+    warranty = models.JSONField(default=default_warranty, blank=True)
 
     image_urls = models.JSONField(default=list)
     available_colors = models.JSONField(default=list, blank=True)
