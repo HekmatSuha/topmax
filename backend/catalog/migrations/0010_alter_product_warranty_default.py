@@ -4,6 +4,11 @@ import catalog.models
 from django.db import migrations, models
 
 
+def set_empty_warranties_to_default(apps, schema_editor):
+    Product = apps.get_model("catalog", "Product")
+    Product.objects.filter(warranty={}).update(warranty=catalog.models.default_warranty())
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -19,4 +24,5 @@ class Migration(migrations.Migration):
                 default=catalog.models.default_warranty,
             ),
         ),
+        migrations.RunPython(set_empty_warranties_to_default, migrations.RunPython.noop),
     ]

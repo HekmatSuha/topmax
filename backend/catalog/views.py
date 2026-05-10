@@ -69,7 +69,7 @@ def _product_payload(product, user=None):
         "imageUrls": uploaded_urls + legacy_urls if not uploaded_urls else uploaded_urls,
         "availableColors": product.available_colors,
         "features": product.features,
-        "warranty": product.warranty,
+        "warranty": product.warranty or default_warranty(),
         "dimensions": product.dimensions,
         "images": [_image_payload(img) for img in uploaded_images],
     }
