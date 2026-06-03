@@ -72,6 +72,7 @@ def _product_payload(product, user=None):
         "warranty": product.warranty or default_warranty(),
         "dimensions": product.dimensions,
         "images": [_image_payload(img) for img in uploaded_images],
+        "videoUrl": product.video_url or "",
     }
     if can_view_wholesale and product.wholesale_price_usd is not None:
         payload["wholesalePriceUsd"] = str(product.wholesale_price_usd)
@@ -240,6 +241,7 @@ def product_detail_api(request, pk):
         "features": "features",
         "warranty": "warranty",
         "dimensions": "dimensions",
+        "videoUrl": "video_url",
     }
     for api_key, model_field in field_map.items():
         if api_key in payload:

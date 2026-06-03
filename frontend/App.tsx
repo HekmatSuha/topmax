@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
+import ProductCardSkeleton from './components/ProductCardSkeleton';
+import Toast, { ToastMessage } from './components/Toast';
 import Contact from './components/Contact';
 import Basket from './components/Basket';
 import Auth from './components/Auth';
@@ -81,9 +83,11 @@ const App: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [basket, setBasket] = useState<BasketItem[]>([]);
-  const [showBuyElseModal, setShowBuyElseModal] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [likedIds, setLikedIds] = useState<string[]>([]);
   
   // Auth state
@@ -97,6 +101,7 @@ const App: React.FC = () => {
   const productsStartRef = useRef<HTMLDivElement>(null);
   const imageSearchInputRef = useRef<HTMLInputElement>(null);
   const cameraSearchInputRef = useRef<HTMLInputElement>(null);
+  const touchStartX = useRef(0);
 
   const t = translations;
 
@@ -282,9 +287,11 @@ const App: React.FC = () => {
       setIsModalVisible(true);
       setSelectedColor(selectedProduct.availableColors?.[0] || null);
       setActiveImageIndex(0);
+      setShowVideo(false);
       document.body.style.overflow = 'hidden';
     } else {
       setIsModalVisible(false);
+      setShowVideo(false);
       document.body.style.overflow = 'unset';
     }
   }, [selectedProduct]);
@@ -342,8 +349,18 @@ const App: React.FC = () => {
     }
   };
 
+  const addToast = (message: string, type: ToastMessage['type'] = 'success', action?: ToastMessage['action']) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type, action }]);
+  };
+  const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
+
   const toggleLike = (id: string) => {
-    setLikedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    setLikedIds(prev => {
+      const isNowLiked = !prev.includes(id);
+      addToast(isNowLiked ? 'Added to favorites' : 'Removed from favorites', 'info');
+      return isNowLiked ? [...prev, id] : prev.filter(i => i !== id);
+    });
   };
 
   const handleNavigate = (page: string) => {
@@ -594,15 +611,19 @@ const App: React.FC = () => {
     setBasket(prev => {
       const existing = prev.find(item => item.id === product.id && item.selectedColor === selectedColor);
       if (existing) {
-        return prev.map(item => 
-          (item.id === product.id && item.selectedColor === selectedColor) 
-            ? { ...item, quantity: item.quantity + 1 } 
+        return prev.map(item =>
+          (item.id === product.id && item.selectedColor === selectedColor)
+            ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
       return [...prev, { ...product, quantity: 1, selectedColor: selectedColor || undefined }];
     });
-    setShowBuyElseModal(true);
+    addToast(
+      `${product.name[language] || product.name.en} added to basket`,
+      'success',
+      { label: 'View Basket', onClick: () => { handleSelectProduct(null); setCurrentPage('basket'); } }
+    );
   };
 
   const colorHexMap: Record<string, string> = {
@@ -622,6 +643,12 @@ const App: React.FC = () => {
     nickel: 'linear-gradient(135deg, #c0c0c0, #808080)',
   };
   const getColorHex = (colorKey: string) => colorHexMap[normalizeColorKey(colorKey)] || '#ccc';
+
+  const getVideoEmbedUrl = (url: string) => {
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([^&?/\s]{11})/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
+    return null;
+  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -748,15 +775,41 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="sticky top-20 z-40 -mx-3 mb-5 border-y border-gray-100 bg-gray-50/95 px-3 py-3 backdrop-blur md:static md:mx-0 md:mb-12 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-              <div className="no-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-2.5 overflow-x-auto md:flex-wrap md:justify-center md:gap-4 md:overflow-visible">
+            {/* Mobile: filter trigger button */}
+            <div className="sticky top-20 z-40 -mx-3 mb-5 border-y border-gray-100 bg-gray-50/95 px-3 py-3 backdrop-blur md:hidden">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  {renderCategoryIcon(filter, true)}
+                  <span className="text-sm font-black text-slate-900 truncate">
+                    {filter === 'All' ? t.all[language] : t[filter][language]}
+                  </span>
+                  {filter !== 'All' && (
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700">
+                      {filteredProducts.length}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowMobileFilters(true)}
+                  className="flex shrink-0 items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 shadow-sm transition-all active:scale-95"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M7 9h10M11 14h2" />
+                  </svg>
+                  Filter
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop: wrapped category pills */}
+            <div className="mb-12 hidden md:flex md:flex-wrap md:justify-center md:gap-4">
               {categoryKeys.map(key => (
                 <button
                   key={key}
                   onClick={() => handleCategorySelect(key)}
-                  className={`group flex shrink-0 snap-start items-center gap-2 px-5 py-3 rounded-2xl font-black text-sm transition-all duration-300 md:px-6 ${
-                    filter === key 
-                      ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105' 
+                  className={`group flex shrink-0 items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm transition-all duration-300 ${
+                    filter === key
+                      ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
                       : 'bg-white border border-gray-100 text-slate-500 hover:border-blue-200 hover:bg-blue-50'
                   }`}
                 >
@@ -764,25 +817,32 @@ const App: React.FC = () => {
                   {key === 'All' ? t.all[language] : t[key][language]}
                 </button>
               ))}
-              </div>
             </div>
 
             <div ref={productsStartRef} className="scroll-mt-36 md:scroll-mt-8" />
 
             {isProductsLoading ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 mb-20">
-                <p className="text-gray-400 text-xl font-medium">Loading products...</p>
+              <div className="mb-20 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
               </div>
             ) : productsError ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-red-200 mb-20">
-                <p className="text-red-500 text-xl font-medium">{productsError}</p>
+              <div className="mb-20 flex flex-col items-center justify-center rounded-3xl border border-dashed border-red-200 bg-white py-24 text-center">
+                <svg className="mb-4 h-16 w-16 text-red-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <p className="text-red-500 text-lg font-bold mb-4">{productsError}</p>
+                <button onClick={loadProducts} className="rounded-xl bg-red-50 px-6 py-2.5 text-sm font-black text-red-600 hover:bg-red-100 transition-colors">
+                  Try Again
+                </button>
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="mb-20 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredProducts.map(product => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product} 
+                  <ProductCard
+                    key={product.id}
+                    product={product}
                     onInquire={handleSelectProduct}
                     onAddToBasket={addToBasket}
                     language={language}
@@ -792,9 +852,20 @@ const App: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 mb-20">
-                <p className="text-gray-400 text-xl font-medium">No results found.</p>
-                <button onClick={() => setSearchQuery('')} className="mt-2 text-blue-600 font-bold hover:underline">{t.clearSearch[language]}</button>
+              <div className="mb-20 flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-white py-24 text-center px-6">
+                <svg className="mb-6 h-24 w-24 text-slate-200" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 96 96">
+                  <circle cx="48" cy="42" r="22" strokeWidth="2" />
+                  <path strokeWidth="2" d="M64 58l16 16" strokeLinecap="round" />
+                  <path strokeWidth="1.5" d="M38 42h20M48 32v20" strokeLinecap="round" strokeOpacity="0.4" />
+                </svg>
+                <p className="font-display text-2xl font-bold text-slate-400 mb-2">No products found</p>
+                <p className="text-slate-400 text-sm mb-6">Try adjusting your search or clearing the filters.</p>
+                <button
+                  onClick={() => { setSearchQuery(''); setFilter('All'); }}
+                  className="rounded-xl bg-blue-50 px-6 py-2.5 text-sm font-black text-blue-600 hover:bg-blue-100 transition-colors"
+                >
+                  Clear Search
+                </button>
               </div>
             )}
 
@@ -873,7 +944,11 @@ const App: React.FC = () => {
                   <span className="hidden sm:inline text-sm uppercase tracking-widest">Back</span>
                </button>
                <div className="min-w-0 px-1 text-center">
-                  <span className="block truncate text-[10px] uppercase tracking-widest font-black text-blue-600">{t[selectedProduct.category][language]}</span>
+                  <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-slate-400">{t.catalog[language]}</span>
+                    <span className="text-slate-300">›</span>
+                    <span className="text-blue-600">{t[selectedProduct.category][language]}</span>
+                  </div>
                   <span className="block truncate text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-tight">{selectedProduct.name[language]}</span>
                </div>
                <div className="flex items-center gap-2">
@@ -902,27 +977,78 @@ const App: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
               <div className="relative flex min-h-[420px] flex-col justify-center border-r border-slate-100 bg-slate-50 p-4 sm:p-6 lg:p-8">
-                 <div className="flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 lg:min-h-[520px]">
-                    <img
-                      src={visibleImageUrls[activeImageIndex] || PLACEHOLDER_IMAGE}
-                      alt={getLocalizedText(selectedProduct.name, selectedProduct.itemCode)}
-                      className="h-full max-h-[520px] w-full object-contain p-3 transition-all duration-500 sm:p-5"
-                    />
+                 <div
+                   className="flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 lg:min-h-[520px] select-none"
+                   onTouchStart={e => { if (!showVideo) touchStartX.current = e.touches[0].clientX; }}
+                   onTouchEnd={e => {
+                     if (showVideo) return;
+                     const delta = e.changedTouches[0].clientX - touchStartX.current;
+                     if (Math.abs(delta) > 45 && visibleImageUrls.length > 1) {
+                       setActiveImageIndex(i =>
+                         delta < 0
+                           ? (i + 1) % visibleImageUrls.length
+                           : (i - 1 + visibleImageUrls.length) % visibleImageUrls.length
+                       );
+                     }
+                   }}
+                 >
+                   {showVideo && selectedProduct.videoUrl ? (
+                     (() => {
+                       const embedUrl = getVideoEmbedUrl(selectedProduct.videoUrl);
+                       return embedUrl ? (
+                         <iframe
+                           src={embedUrl}
+                           title="Product video"
+                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                           allowFullScreen
+                           className="h-full w-full min-h-[300px] lg:min-h-[520px] rounded-2xl"
+                         />
+                       ) : (
+                         <video
+                           src={selectedProduct.videoUrl}
+                           controls
+                           autoPlay
+                           className="h-full max-h-[520px] w-full rounded-2xl object-contain"
+                         />
+                       );
+                     })()
+                   ) : (
+                     <img
+                       src={visibleImageUrls[activeImageIndex] || PLACEHOLDER_IMAGE}
+                       alt={getLocalizedText(selectedProduct.name, selectedProduct.itemCode)}
+                       loading="lazy"
+                       decoding="async"
+                       className="h-full max-h-[520px] w-full object-contain p-3 transition-all duration-500 sm:p-5"
+                     />
+                   )}
                  </div>
 
-                 {visibleImageUrls.length > 0 && (
+                 {(visibleImageUrls.length > 0 || selectedProduct.videoUrl) && (
                    <div className="no-scrollbar mt-4 flex max-w-full gap-3 overflow-x-auto px-1 pb-1">
                       {visibleImageUrls.map((url, index) => (
                         <button
                           key={index}
-                          onClick={() => setActiveImageIndex(index)}
+                          onClick={() => { setActiveImageIndex(index); setShowVideo(false); }}
                           className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border bg-white transition-all ${
-                            activeImageIndex === index ? 'border-blue-600 ring-4 ring-blue-50 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'
+                            !showVideo && activeImageIndex === index ? 'border-blue-600 ring-4 ring-blue-50 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'
                           }`}
                         >
                           <img src={url} alt="" className="w-full h-full object-cover" />
                         </button>
                       ))}
+                      {selectedProduct.videoUrl && (
+                        <button
+                          onClick={() => setShowVideo(true)}
+                          className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border bg-slate-900 transition-all flex items-center justify-center ${
+                            showVideo ? 'border-blue-600 ring-4 ring-blue-50 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'
+                          }`}
+                          title="Play video"
+                        >
+                          <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </button>
+                      )}
                    </div>
                  )}
               </div>
@@ -1078,31 +1204,39 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {showBuyElseModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-md" onClick={() => setShowBuyElseModal(false)}></div>
-          <div className="relative bg-white rounded-[3rem] max-w-md w-full p-12 shadow-2xl text-center">
-            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
-               <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-               </svg>
+      <Toast toasts={toasts} onRemove={removeToast} />
+
+      {showMobileFilters && (
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end md:hidden">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => setShowMobileFilters(false)}
+          />
+          <div className="relative bg-white rounded-t-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+            <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-slate-200" />
+            <h3 className="mb-5 text-center text-xs font-black uppercase tracking-widest text-slate-400">Filter by Category</h3>
+            <div className="grid grid-cols-2 gap-3 pb-safe">
+              {categoryKeys.map(key => (
+                <button
+                  key={key}
+                  onClick={() => { handleCategorySelect(key); setShowMobileFilters(false); }}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-4 font-black text-sm transition-all ${
+                    filter === key
+                      ? 'bg-slate-900 text-white shadow-lg'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {renderCategoryIcon(key, filter === key)}
+                  <span className="truncate">{key === 'All' ? t.all[language] : t[key][language]}</span>
+                </button>
+              ))}
             </div>
-            <h2 className="text-3xl font-serif font-black text-slate-900 mb-4">{t.addedToBasket[language]}</h2>
-            <p className="text-slate-500 text-xl mb-10 font-medium leading-relaxed">{t.buyElsePrompt[language]}</p>
-            <div className="flex flex-col gap-4">
-              <button 
-                onClick={() => { setShowBuyElseModal(false); handleSelectProduct(null); setCurrentPage('home'); }}
-                className="bg-blue-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
-              >
-                {t.keepLooking[language]}
-              </button>
-              <button 
-                onClick={() => { setShowBuyElseModal(false); handleSelectProduct(null); setCurrentPage('basket'); }}
-                className="bg-slate-100 text-slate-900 py-5 rounded-2xl font-black text-xl hover:bg-slate-200 transition-all"
-              >
-                {t.goBasket[language]}
-              </button>
-            </div>
+            <button
+              onClick={() => setShowMobileFilters(false)}
+              className="mt-4 w-full rounded-2xl bg-slate-100 py-4 font-black text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

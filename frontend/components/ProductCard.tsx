@@ -68,13 +68,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
         setActiveImageIndex(0);
       }}
     >
-      <div className="relative aspect-square overflow-hidden bg-slate-100 sm:h-64 sm:aspect-auto">
+      <div className="relative aspect-square overflow-hidden bg-slate-100 sm:h-64 sm:aspect-auto cursor-pointer" onClick={() => onInquire(product)}>
         {slideshowImages.map((imageUrl, index) => (
           <img
             key={`${imageUrl}-${index}`}
             src={imageUrl}
             alt={index === activeImageIndex ? productName : ''}
             aria-hidden={index !== activeImageIndex}
+            loading="lazy"
+            decoding="async"
             className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
               index === activeImageIndex ? 'opacity-100' : 'opacity-0'
             } ${outOfStock ? 'grayscale-[40%]' : ''}`}
@@ -82,6 +84,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         ))}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/18 to-transparent" />
+
 
         {slideshowImages.length > 1 && (
           <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/85 px-1.5 py-1 shadow-sm backdrop-blur-sm sm:bottom-3 sm:gap-1.5 sm:px-2">
@@ -188,29 +191,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-1.5 sm:gap-2">
-            {onAddToBasket ? (
-              <button
-                type="button"
-                onClick={() => onAddToBasket(product)}
-                disabled={outOfStock}
-                className="flex h-9 min-w-0 items-center justify-center gap-1 rounded-lg bg-slate-950 px-1.5 text-[11px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:h-10 sm:gap-1.5 sm:px-2 sm:text-xs"
-              >
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-                <span className="min-w-0 truncate">{translations.buy[language]}</span>
-              </button>
-            ) : null}
-
+          {onAddToBasket ? (
             <button
               type="button"
-              onClick={() => onInquire(product)}
-              className="flex h-9 min-w-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-1.5 text-[11px] font-black text-slate-800 transition-colors hover:border-slate-900 hover:bg-slate-900 hover:text-white sm:h-10 sm:px-2 sm:text-xs"
+              onClick={(e) => { e.stopPropagation(); onAddToBasket(product); }}
+              disabled={outOfStock}
+              className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-slate-950 px-3 text-[11px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:text-xs"
             >
-              <span className="min-w-0 truncate">{translations.details[language]}</span>
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <span className="truncate">{translations.buy[language]}</span>
             </button>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>

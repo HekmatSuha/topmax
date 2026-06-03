@@ -41,6 +41,9 @@ class ProductForm(forms.ModelForm):
     # --- available_colors (one color per line) ---
     available_colors_text = forms.CharField(widget=forms.Textarea(attrs={"rows": 3, "placeholder": "One color key per line, e.g. chrome"}), required=False, label="Available colors")
 
+    # --- video url ---
+    video_url = forms.URLField(required=False, label="Video URL (YouTube or direct MP4)", help_text="Paste a YouTube link or direct .mp4 URL to show a video in the product detail page.")
+
     class Meta:
         model = Product
         fields = [
@@ -63,6 +66,7 @@ class ProductForm(forms.ModelForm):
 
             self.fields["image_urls_text"].initial = "\n".join(obj.image_urls or [])
             self.fields["available_colors_text"].initial = "\n".join(obj.available_colors or [])
+            self.fields["video_url"].initial = obj.video_url or ""
 
     def _lines_to_list(self, text):
         """Split textarea text into a list, stripping empty lines."""
@@ -88,6 +92,9 @@ class ProductForm(forms.ModelForm):
 
         # Assemble available_colors list
         obj.available_colors = self._lines_to_list(self.cleaned_data.get("available_colors_text", ""))
+
+        # Save video URL
+        obj.video_url = self.cleaned_data.get("video_url", "")
 
         if commit:
             obj.save()
@@ -143,7 +150,7 @@ class ProductAdmin(admin.ModelAdmin):
             "fields": ("warranty_en", "warranty_ru", "warranty_kk"),
         }),
         ("Images & Colors", {
-            "fields": ("image_urls_text", "available_colors_text"),
+            "fields": ("image_urls_text", "available_colors_text", "video_url"),
         }),
     )
 

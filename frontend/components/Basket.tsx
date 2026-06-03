@@ -59,10 +59,20 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
       </div>
 
       {items.length === 0 ? (
-        <div className="bg-white rounded-[2rem] p-16 text-center shadow-lg border border-gray-100">
-           <div className="text-6xl mb-6">🧺</div>
-          <h2 className="text-3xl font-serif font-black text-slate-900 mb-6">{t.basketEmpty[language]}</h2>
-          <button onClick={onContinueShopping} className="bg-blue-600 text-white px-10 py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-100">
+        <div className="bg-white rounded-[2rem] px-8 py-20 text-center shadow-lg border border-gray-100 flex flex-col items-center">
+          <svg className="mb-8 h-36 w-36 text-slate-100" viewBox="0 0 144 144" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="72" cy="72" r="64" fill="currentColor" />
+            <path d="M48 60h48l-6 40H54L48 60z" fill="white" stroke="#e2e8f0" strokeWidth="2" />
+            <path d="M60 60V52a12 12 0 0 1 24 0v8" stroke="#cbd5e1" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="65" cy="88" r="3" fill="#cbd5e1" />
+            <circle cx="79" cy="88" r="3" fill="#cbd5e1" />
+          </svg>
+          <h2 className="font-display text-3xl font-bold text-slate-800 mb-3">{t.basketEmpty[language]}</h2>
+          <p className="text-slate-400 text-base mb-10 max-w-xs">Browse our premium sanitary collection and add items you love.</p>
+          <button
+            onClick={onContinueShopping}
+            className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-base shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+          >
             {t.catalog[language]}
           </button>
         </div>

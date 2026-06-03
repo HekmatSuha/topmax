@@ -41,6 +41,7 @@ class Product(models.Model):
 
     image_urls = models.JSONField(default=list)
     available_colors = models.JSONField(default=list, blank=True)
+    video_url = models.URLField(blank=True, default='')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

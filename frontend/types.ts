@@ -46,6 +46,7 @@ export interface Product {
   };
   warranty?: LocalizedString;
   dimensions?: string;
+  videoUrl?: string;
 }
 
 export interface BasketItem extends Product {
