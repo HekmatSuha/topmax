@@ -242,16 +242,25 @@ const App: React.FC = () => {
       if (savedLikes) {
         setLikedIds(JSON.parse(savedLikes));
       }
+      const savedBasket = localStorage.getItem('topmax_basket');
+      if (savedBasket) {
+        setBasket(JSON.parse(savedBasket));
+      }
     } catch (err) {
       console.error('Failed to restore saved user data:', err);
       localStorage.removeItem('topmax_user');
       localStorage.removeItem('topmax_likes');
+      localStorage.removeItem('topmax_basket');
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('topmax_likes', JSON.stringify(likedIds));
   }, [likedIds]);
+
+  useEffect(() => {
+    localStorage.setItem('topmax_basket', JSON.stringify(basket));
+  }, [basket]);
 
   useEffect(() => {
     const title = t.seoTitle[language];
@@ -345,6 +354,7 @@ const App: React.FC = () => {
       setUser(null);
       setBasket([]);
       localStorage.removeItem('topmax_user');
+      localStorage.removeItem('topmax_basket');
       loadProducts();
     }
   };
@@ -358,7 +368,7 @@ const App: React.FC = () => {
   const toggleLike = (id: string) => {
     setLikedIds(prev => {
       const isNowLiked = !prev.includes(id);
-      addToast(isNowLiked ? 'Added to favorites' : 'Removed from favorites', 'info');
+      addToast(isNowLiked ? t.addedToFavorites[language] : t.removedFromFavorites[language], 'info');
       return isNowLiked ? [...prev, id] : prev.filter(i => i !== id);
     });
   };
@@ -620,9 +630,9 @@ const App: React.FC = () => {
       return [...prev, { ...product, quantity: 1, selectedColor: selectedColor || undefined }];
     });
     addToast(
-      `${product.name[language] || product.name.en} added to basket`,
+      `${product.name[language] || product.name.en} ${t.addedToBasketToast[language]}`,
       'success',
-      { label: 'View Basket', onClick: () => { handleSelectProduct(null); setCurrentPage('basket'); } }
+      { label: t.viewBasket[language], onClick: () => { handleSelectProduct(null); setCurrentPage('basket'); } }
     );
   };
 
@@ -796,7 +806,7 @@ const App: React.FC = () => {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M7 9h10M11 14h2" />
                   </svg>
-                  Filter
+                  {t.filterBy[language]}
                 </button>
               </div>
             </div>
@@ -834,7 +844,7 @@ const App: React.FC = () => {
                 </svg>
                 <p className="text-red-500 text-lg font-bold mb-4">{productsError}</p>
                 <button onClick={loadProducts} className="rounded-xl bg-red-50 px-6 py-2.5 text-sm font-black text-red-600 hover:bg-red-100 transition-colors">
-                  Try Again
+                  {t.tryAgain[language]}
                 </button>
               </div>
             ) : filteredProducts.length > 0 ? (
@@ -858,13 +868,13 @@ const App: React.FC = () => {
                   <path strokeWidth="2" d="M64 58l16 16" strokeLinecap="round" />
                   <path strokeWidth="1.5" d="M38 42h20M48 32v20" strokeLinecap="round" strokeOpacity="0.4" />
                 </svg>
-                <p className="font-display text-2xl font-bold text-slate-400 mb-2">No products found</p>
-                <p className="text-slate-400 text-sm mb-6">Try adjusting your search or clearing the filters.</p>
+                <p className="font-display text-2xl font-bold text-slate-400 mb-2">{t.noProductsFound[language]}</p>
+                <p className="text-slate-400 text-sm mb-6">{t.noProductsHint[language]}</p>
                 <button
                   onClick={() => { setSearchQuery(''); setFilter('All'); }}
                   className="rounded-xl bg-blue-50 px-6 py-2.5 text-sm font-black text-blue-600 hover:bg-blue-100 transition-colors"
                 >
-                  Clear Search
+                  {t.clearSearch[language]}
                 </button>
               </div>
             )}
@@ -1214,7 +1224,7 @@ const App: React.FC = () => {
           />
           <div className="relative bg-white rounded-t-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
             <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-slate-200" />
-            <h3 className="mb-5 text-center text-xs font-black uppercase tracking-widest text-slate-400">Filter by Category</h3>
+            <h3 className="mb-5 text-center text-xs font-black uppercase tracking-widest text-slate-400">{t.filterByCategory[language]}</h3>
             <div className="grid grid-cols-2 gap-3 pb-safe">
               {categoryKeys.map(key => (
                 <button
@@ -1235,7 +1245,7 @@ const App: React.FC = () => {
               onClick={() => setShowMobileFilters(false)}
               className="mt-4 w-full rounded-2xl bg-slate-100 py-4 font-black text-slate-700 hover:bg-slate-200 transition-colors"
             >
-              Done
+              {t.filterDone[language]}
             </button>
           </div>
         </div>

@@ -98,5 +98,15 @@ export const translations: Record<string, Record<Language, string>> = {
   outOfStock: { en: 'Out of Stock', ru: 'Нет в наличии', kk: 'Қоймада жоқ' },
   inStock: { en: 'In Stock', ru: 'В наличии', kk: 'Қоймада бар' },
   sale: { en: 'Sale', ru: 'Скидка', kk: 'Жеңілдік' },
-  new: { en: 'New', ru: 'Новинка', kk: 'Жаңа' }
+  new: { en: 'New', ru: 'Новинка', kk: 'Жаңа' },
+  filterBy: { en: 'Filter', ru: 'Фильтр', kk: 'Сүзгі' },
+  viewBasket: { en: 'View Basket', ru: 'Смотреть корзину', kk: 'Себетті ашу' },
+  addedToBasketToast: { en: 'added to basket', ru: 'добавлен в корзину', kk: 'себетке қосылды' },
+  addedToFavorites: { en: 'Added to favorites', ru: 'Добавлено в избранное', kk: 'Таңдаулыларға қосылды' },
+  removedFromFavorites: { en: 'Removed from favorites', ru: 'Удалено из избранного', kk: 'Таңдаулылардан жойылды' },
+  noProductsFound: { en: 'No products found', ru: 'Товары не найдены', kk: 'Тауарлар табылмады' },
+  noProductsHint: { en: 'Try adjusting your search or clearing the filters.', ru: 'Попробуйте изменить запрос или очистить фильтры.', kk: 'Сұрауды өзгертіп немесе сүзгілерді тазартып көріңіз.' },
+  filterDone: { en: 'Done', ru: 'Готово', kk: 'Дайын' },
+  filterByCategory: { en: 'Filter by Category', ru: 'Фильтр по категории', kk: 'Санат бойынша сүзу' },
+  tryAgain: { en: 'Try Again', ru: 'Попробовать снова', kk: 'Қайталап көру' }
 };
