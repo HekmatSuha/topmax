@@ -614,7 +614,9 @@ const Basket: React.FC<BasketProps> = ({
                   </div>
                   <div className="flex-grow text-center sm:text-left">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
-                      <span className="bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">{t[item.category][language]}</span>
+                      <span className="bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                        {item.categoryName?.[language] || item.categoryName?.en || t[item.category]?.[language] || item.category}
+                      </span>
                       {item.selectedColor && (
                         <span className="bg-slate-900 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full">
                           {t[item.selectedColor]?.[language] || item.selectedColor}

@@ -3,11 +3,52 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
-from .models import Product, ProductImage, WholesaleCustomer, SiteSettings, default_warranty
+from .models import Category, Product, ProductImage, WholesaleCustomer, SiteSettings, default_warranty
 
 LANGUAGES = ("en", "ru", "kk")
 LANGUAGE_LABELS = {"en": "English", "ru": "Russian", "kk": "Kazakh"}
 DEFAULT_WARRANTY = default_warranty()
+
+
+class CategoryForm(forms.ModelForm):
+    name_en = forms.CharField(max_length=255, label="Name (English)")
+    name_ru = forms.CharField(max_length=255, required=False, label="Name (Russian)")
+    name_kk = forms.CharField(max_length=255, required=False, label="Name (Kazakh)")
+
+    class Meta:
+        model = Category
+        fields = ("slug", "sort_order", "is_active")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            for lang in LANGUAGES:
+                self.fields[f"name_{lang}"].initial = (self.instance.name or {}).get(lang, "")
+
+    def save(self, commit=True):
+        category = super().save(commit=False)
+        category.name = {
+            lang: self.cleaned_data.get(f"name_{lang}", "")
+            for lang in LANGUAGES
+        }
+        if commit:
+            category.save()
+        return category
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    form = CategoryForm
+    list_display = ("name_en", "slug", "sort_order", "is_active", "product_count")
+    list_editable = ("sort_order", "is_active")
+    search_fields = ("slug",)
+    fields = ("slug", "name_en", "name_ru", "name_kk", "sort_order", "is_active")
+
+    def name_en(self, obj):
+        return obj.name.get("en") or obj.slug
+
+    def product_count(self, obj):
+        return obj.products.count()
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +170,7 @@ class ProductImageInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
     list_display = ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "in_stock", "is_new", "image_count", "updated_at")
-    search_fields = ("item_code", "category")
+    search_fields = ("item_code", "category__slug")
     list_filter = ("category", "in_stock")
     inlines = [ProductImageInline]
 

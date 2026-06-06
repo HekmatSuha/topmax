@@ -7,14 +7,14 @@ import Contact from './components/Contact';
 import Basket from './components/Basket';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
-import { Product, ProductImage, BasketItem, Language, User } from './types';
+import { Product, ProductImage, BasketItem, Category, Language, User } from './types';
 import { translations } from './translations';
 
 const BACKEND_BASE_URL = import.meta.env.DEV ? 'http://localhost:8000' : '';
 const PLACEHOLDER_IMAGE =
   'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"%3E%3Crect width="640" height="480" fill="%23f1f5f9"/%3E%3Cpath d="M160 336h320L384 224l-72 80-48-56-104 88Z" fill="%23cbd5e1"/%3E%3Ccircle cx="240" cy="176" r="40" fill="%23cbd5e1"/%3E%3C/svg%3E';
 
-type CategoryKey = Product['category'] | 'All';
+type CategoryKey = string;
 type PageKey = 'home' | 'contact' | 'basket';
 type VisualSearchResult = {
   label: string;
@@ -95,6 +95,7 @@ const App: React.FC = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [backendStatus, setBackendStatus] = useState<string>('checking');
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -114,6 +115,15 @@ const App: React.FC = () => {
     value: Partial<Record<Language, string>> | undefined,
     fallback = ''
   ) => value?.[language] || value?.en || fallback;
+  const getCategoryLabel = (slug: string, product?: Product) => {
+    const category = categories.find(item => item.slug === slug);
+    return category?.name?.[language]
+      || category?.name?.en
+      || product?.categoryName?.[language]
+      || product?.categoryName?.en
+      || t[slug]?.[language]
+      || slug;
+  };
 
   const resolveImageUrl = (url: string) => {
     if (!url) return url;
@@ -184,6 +194,22 @@ const App: React.FC = () => {
       });
   };
 
+  const loadCategories = () => {
+    fetch(`${BACKEND_BASE_URL}/api/categories/`, { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) throw new Error(`Categories request failed: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setCategories((data.categories || []).sort(
+          (a: Category, b: Category) => a.sortOrder - b.sortOrder
+        ));
+      })
+      .catch(err => {
+        console.error('Failed to load categories:', err);
+      });
+  };
+
   useEffect(() => {
     const onPopState = (e: PopStateEvent) => {
       const params = new URLSearchParams(window.location.search);
@@ -215,6 +241,7 @@ const App: React.FC = () => {
       });
 
     loadProducts();
+    loadCategories();
 
     fetch(`${BACKEND_BASE_URL}/api/auth/me/`, { credentials: 'include' })
       .then(res => {
@@ -486,6 +513,7 @@ const App: React.FC = () => {
     const colorValues = (product.availableColors || []).flatMap(getColorSearchTerms);
     const categoryValues = [
       product.category,
+      ...getLocalizedSearchValues(product.categoryName),
       ...(t[product.category] ? getLocalizedSearchValues(t[product.category]) : []),
     ];
     const statusValues = [
@@ -594,14 +622,18 @@ const App: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
       );
-      default: return null;
+      default: return (
+        <svg className={`w-5 h-5 transition-colors ${colorClass}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      );
     }
   };
 
-  const categoryKeys: CategoryKey[] = ['All', 'Baths', 'Basins', 'Taps', 'Closets', 'Mirrors', 'Dryers', 'Others'];
+  const categoryKeys: CategoryKey[] = ['All', ...categories.map(category => category.slug)];
   const categoryShowcase = useMemo(() => {
     return categoryKeys
-      .filter((key): key is Product['category'] => key !== 'All')
+      .filter(key => key !== 'All')
       .map(category => {
         const categoryProducts = products.filter(product => product.category === category);
         const product = categoryProducts.length > 0
@@ -619,7 +651,7 @@ const App: React.FC = () => {
           itemCount: categoryProducts.length,
         };
       });
-  }, [products]);
+  }, [products, categories]);
   const searchTokens = useMemo(() => tokenizeSearchQuery(searchQuery), [searchQuery]);
   const filteredProducts = useMemo(() => {
     return products
@@ -840,7 +872,7 @@ const App: React.FC = () => {
                     >
                       <div className="absolute inset-x-0 top-0 z-20 flex min-h-12 items-center justify-center bg-gradient-to-r from-slate-950 to-slate-800 px-4 py-2 text-center">
                         <h3 className="text-base font-black leading-tight text-white sm:text-lg">
-                          {t[card.category][language]}
+                          {getCategoryLabel(card.category)}
                         </h3>
                       </div>
                       <div className="absolute inset-x-0 bottom-0 top-12 overflow-hidden bg-slate-100">
@@ -876,7 +908,7 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-2 min-w-0">
                   {renderCategoryIcon(filter, true)}
                   <span className="text-sm font-black text-slate-900 truncate">
-                    {filter === 'All' ? t.all[language] : t[filter][language]}
+                    {filter === 'All' ? t.all[language] : getCategoryLabel(filter)}
                   </span>
                   {filter !== 'All' && (
                     <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700">
@@ -905,7 +937,7 @@ const App: React.FC = () => {
                     TOP MAX
                   </p>
                   <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
-                    {filter === 'All' ? t.all[language] : t[filter][language]}
+                    {filter === 'All' ? t.all[language] : getCategoryLabel(filter)}
                   </h2>
                 </div>
                 {!isProductsLoading && !productsError && (
@@ -1044,7 +1076,7 @@ const App: React.FC = () => {
                   <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-widest">
                     <span className="text-slate-400">{t.catalog[language]}</span>
                     <span className="text-slate-300">›</span>
-                    <span className="text-blue-600">{t[selectedProduct.category][language]}</span>
+                    <span className="text-blue-600">{getCategoryLabel(selectedProduct.category, selectedProduct)}</span>
                   </div>
                   <span className="block truncate text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-tight">{selectedProduct.name[language]}</span>
                </div>
@@ -1157,7 +1189,7 @@ const App: React.FC = () => {
                     {selectedProduct.itemCode}
                   </span>
                   <span className="rounded-md bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-blue-600">
-                    {t[selectedProduct.category][language]}
+                    {getCategoryLabel(selectedProduct.category, selectedProduct)}
                   </span>
                 </div>
                 <h2 className="mb-4 text-3xl font-black leading-tight text-slate-950 sm:text-4xl">
@@ -1324,7 +1356,7 @@ const App: React.FC = () => {
                   }`}
                 >
                   {renderCategoryIcon(key, filter === key)}
-                  <span className="truncate">{key === 'All' ? t.all[language] : t[key][language]}</span>
+                  <span className="truncate">{key === 'All' ? t.all[language] : getCategoryLabel(key)}</span>
                 </button>
               ))}
             </div>

@@ -7,6 +7,13 @@ export interface LocalizedString {
   kk: string;
 }
 
+export interface Category {
+  slug: string;
+  name: LocalizedString;
+  sortOrder: number;
+  productCount: number;
+}
+
 export interface User {
   name: string;
   email: string;
@@ -28,7 +35,8 @@ export interface Product {
   id: string;
   itemCode: string;
   name: LocalizedString;
-  category: 'Baths' | 'Taps' | 'Closets' | 'Mirrors' | 'Accessories' | 'Basins' | 'Dryers' | 'Others';
+  category: string;
+  categoryName?: LocalizedString;
   description: LocalizedString;
   price: number | null;
   wholesalePriceUsd?: string;

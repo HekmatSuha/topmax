@@ -4,17 +4,15 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET
 from django.conf import settings
 
-from .models import Product, ProductImage, SiteSettings, default_warranty
+from .models import Category, Product, ProductImage, SiteSettings, default_warranty
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-VALID_CATEGORIES = {c[0] for c in Product.CATEGORY_CHOICES}
-
 
 def _resolve_image_url(url):
     """Turn a bare filename into a full media path."""
@@ -59,7 +57,8 @@ def _product_payload(product, user=None):
         "id": str(product.id),
         "itemCode": product.item_code,
         "name": product.name,
-        "category": product.category,
+        "category": product.category.slug,
+        "categoryName": product.category.name,
         "description": product.description,
         "price": product.price if show_normal_prices else None,
         "discountPercent": 0,
@@ -100,10 +99,8 @@ def _validate_product_payload(payload):
 
     # category
     category = payload.get("category")
-    if category is not None and category not in VALID_CATEGORIES:
-        errors.append(
-            f"category must be one of: {', '.join(sorted(VALID_CATEGORIES))}."
-        )
+    if category is not None and not Category.objects.filter(slug=category, is_active=True).exists():
+        errors.append("category must match an active category slug.")
 
     # imageUrls
     image_urls = payload.get("imageUrls")
@@ -139,6 +136,22 @@ def _parse_json_body(request):
         return None, JsonResponse({"error": "Invalid JSON body."}, status=400)
 
 
+@require_GET
+def categories_api(request):
+    categories = Category.objects.filter(is_active=True)
+    return JsonResponse({
+        "categories": [
+            {
+                "slug": category.slug,
+                "name": category.name,
+                "sortOrder": category.sort_order,
+                "productCount": category.products.count(),
+            }
+            for category in categories
+        ]
+    })
+
+
 # ---------------------------------------------------------------------------
 # Product list & create
 # ---------------------------------------------------------------------------
@@ -148,7 +161,7 @@ def _parse_json_body(request):
 def products_api(request):
     # --- LIST ---
     if request.method == "GET":
-        products = Product.objects.prefetch_related("images").all()
+        products = Product.objects.select_related("category").prefetch_related("images").all()
         return JsonResponse(
             {"products": [_product_payload(p, request.user) for p in products]}
         )
@@ -176,7 +189,7 @@ def products_api(request):
         product = Product.objects.create(
             item_code=payload["itemCode"],
             name=payload["name"],
-            category=payload["category"],
+            category=Category.objects.get(slug=payload["category"], is_active=True),
             description=payload["description"],
             price=payload["price"],
             wholesale_price_usd=payload.get("wholesalePriceUsd"),
@@ -203,7 +216,7 @@ def products_api(request):
 @require_http_methods(["GET", "PUT", "DELETE"])
 def product_detail_api(request, pk):
     try:
-        product = Product.objects.prefetch_related("images").get(pk=pk)
+        product = Product.objects.select_related("category").prefetch_related("images").get(pk=pk)
     except Product.DoesNotExist:
         return JsonResponse({"error": "Product not found."}, status=404)
 
@@ -229,7 +242,6 @@ def product_detail_api(request, pk):
     field_map = {
         "itemCode": "item_code",
         "name": "name",
-        "category": "category",
         "description": "description",
         "price": "price",
         "wholesalePriceUsd": "wholesale_price_usd",
@@ -246,6 +258,8 @@ def product_detail_api(request, pk):
     for api_key, model_field in field_map.items():
         if api_key in payload:
             setattr(product, model_field, payload[api_key])
+    if "category" in payload:
+        product.category = Category.objects.get(slug=payload["category"], is_active=True)
 
     try:
         product.save()

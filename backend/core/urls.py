@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 from .auth_views import me, signup, signin, signout
 from catalog.views import (
+    categories_api,
     products_api,
     product_detail_api,
     product_images_api,
@@ -26,6 +27,7 @@ urlpatterns = [
     path("api/auth/signin/", signin),
     path("api/auth/me/", me),
     path("api/auth/signout/", signout),
+    path("api/categories/", categories_api),
     path("api/products/", products_api),
     path("api/products/<int:pk>/", product_detail_api),
     path("api/products/<int:pk>/images/", product_images_api),

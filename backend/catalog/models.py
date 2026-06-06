@@ -12,20 +12,27 @@ def default_warranty():
     }
 
 
-class Product(models.Model):
-    CATEGORY_CHOICES = [
-        ("Baths", "Baths"),
-        ("Basins", "Basins"),
-        ("Taps", "Taps"),
-        ("Closets", "Closets"),
-        ("Mirrors", "Mirrors"),
-        ("Dryers", "Dryers"),
-        ("Others", "Others"),
-        ("Accessories", "Accessories"),
-    ]
+class Category(models.Model):
+    slug = models.SlugField(max_length=64, unique=True)
+    name = models.JSONField(default=dict)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
 
+    class Meta:
+        ordering = ["sort_order", "id"]
+        verbose_name_plural = "Categories"
+
+    def __str__(self):
+        return self.name.get("en") or self.slug
+
+
+class Product(models.Model):
     item_code = models.CharField(max_length=64, unique=True)
-    category = models.CharField(max_length=32, choices=CATEGORY_CHOICES)
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.PROTECT,
+        related_name="products",
+    )
     price = models.PositiveIntegerField()
     wholesale_price_usd = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     discount_percent = models.PositiveIntegerField(default=0, help_text="0-100. Set to 0 for no discount.")
