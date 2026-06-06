@@ -599,6 +599,27 @@ const App: React.FC = () => {
   };
 
   const categoryKeys: CategoryKey[] = ['All', 'Baths', 'Basins', 'Taps', 'Closets', 'Mirrors', 'Dryers', 'Others'];
+  const categoryShowcase = useMemo(() => {
+    return categoryKeys
+      .filter((key): key is Product['category'] => key !== 'All')
+      .map(category => {
+        const categoryProducts = products.filter(product => product.category === category);
+        const product = categoryProducts.length > 0
+          ? categoryProducts[Math.floor(Math.random() * categoryProducts.length)]
+          : null;
+        const imageUrl = product?.images?.find(image => image.isPrimary)?.url
+          || product?.images?.[0]?.url
+          || product?.imageUrls?.[0]
+          || PLACEHOLDER_IMAGE;
+
+        return {
+          category,
+          imageUrl,
+          hasProductImage: Boolean(product),
+          itemCount: categoryProducts.length,
+        };
+      });
+  }, [products]);
   const searchTokens = useMemo(() => tokenizeSearchQuery(searchQuery), [searchQuery]);
   const filteredProducts = useMemo(() => {
     return products
@@ -785,6 +806,70 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {!isProductsLoading && !productsError && (
+              <section className="mb-8 sm:mb-10" aria-label={t.filterByCategory[language]}>
+                <div className="mb-4 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
+                      TOP MAX
+                    </p>
+                    <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
+                      {t.filterByCategory[language]}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCategorySelect('All')}
+                    className="hidden rounded-xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-600 transition-colors hover:bg-slate-200 sm:block"
+                  >
+                    {t.all[language]}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+                  {categoryShowcase.map((card, index) => (
+                    <button
+                      type="button"
+                      key={card.category}
+                      onClick={() => handleCategorySelect(card.category)}
+                      className={`group relative min-h-48 overflow-hidden rounded-3xl border bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)] ${
+                        index === 0 ? 'col-span-2 min-h-56' : ''
+                      } ${
+                        filter === card.category ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'
+                      } sm:col-span-1 sm:min-h-52`}
+                    >
+                      <div className="absolute inset-x-0 top-0 z-20 flex min-h-12 items-center justify-center bg-gradient-to-r from-slate-950 to-slate-800 px-4 py-2 text-center">
+                        <h3 className="text-base font-black leading-tight text-white sm:text-lg">
+                          {t[card.category][language]}
+                        </h3>
+                      </div>
+                      <div className="absolute inset-x-0 bottom-0 top-12 overflow-hidden bg-slate-100">
+                        {card.hasProductImage ? (
+                          <img
+                            src={card.imageUrl}
+                            alt=""
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 text-blue-200">
+                            <div className="absolute -bottom-10 -right-8 h-36 w-36 rounded-full bg-blue-100/70" />
+                            <div className="relative scale-[2]">
+                              {renderCategoryIcon(card.category, false)}
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-950/25 to-transparent" />
+                        <span className="absolute bottom-2 right-2 z-10 inline-flex min-w-9 items-center justify-center rounded-md bg-slate-900/85 px-2 py-1.5 text-sm font-black text-white shadow-lg backdrop-blur-sm">
+                          {card.itemCount}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Mobile: filter trigger button */}
             <div className="sticky top-20 z-40 -mx-3 mb-5 border-y border-gray-100 bg-gray-50/95 px-3 py-3 backdrop-blur md:hidden">
               <div className="flex items-center justify-between gap-3">
@@ -811,25 +896,25 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Desktop: wrapped category pills */}
-            <div className="mb-12 hidden md:flex md:flex-wrap md:justify-center md:gap-4">
-              {categoryKeys.map(key => (
-                <button
-                  key={key}
-                  onClick={() => handleCategorySelect(key)}
-                  className={`group flex shrink-0 items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm transition-all duration-300 ${
-                    filter === key
-                      ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
-                      : 'bg-white border border-gray-100 text-slate-500 hover:border-blue-200 hover:bg-blue-50'
-                  }`}
-                >
-                  {renderCategoryIcon(key, filter === key)}
-                  {key === 'All' ? t.all[language] : t[key][language]}
-                </button>
-              ))}
-            </div>
-
             <div ref={productsStartRef} className="scroll-mt-36 md:scroll-mt-8" />
+
+            <section className="mb-7 mt-4 border-t border-slate-200 pt-7 sm:mb-9 sm:mt-6 sm:pt-9">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
+                    TOP MAX
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
+                    {filter === 'All' ? t.all[language] : t[filter][language]}
+                  </h2>
+                </div>
+                {!isProductsLoading && !productsError && (
+                  <span className="inline-flex w-fit rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">
+                    {filteredProducts.length}
+                  </span>
+                )}
+              </div>
+            </section>
 
             {isProductsLoading ? (
               <div className="mb-20 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
