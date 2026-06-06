@@ -892,9 +892,11 @@ const App: React.FC = () => {
           <Basket 
             items={basket} 
             language={language}
+            user={user}
             onRemove={(id, color) => setBasket(b => b.filter(i => !(i.id === id && i.selectedColor === color)))} 
             onUpdateQuantity={(id, color, q) => setBasket(b => b.map(i => (i.id === id && i.selectedColor === color) ? {...i, quantity: q} : i))} 
             onContinueShopping={() => setCurrentPage('home')}
+            onRequestLogin={() => setShowAuth(true)}
           />
         );
       default:

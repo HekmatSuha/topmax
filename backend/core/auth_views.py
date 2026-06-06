@@ -28,6 +28,7 @@ def _user_payload(user):
         "email": user.email,
         "isGuest": False,
         "isWholesale": is_wholesale,
+        "isSuperuser": user.is_superuser,
     }
 
 

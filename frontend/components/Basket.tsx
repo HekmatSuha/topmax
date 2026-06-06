@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { BasketItem, Language } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BasketItem, Language, User } from '../types';
 import { COMPANY_PHONE } from '../constants';
 import { translations } from '../translations';
 
@@ -9,39 +8,289 @@ interface BasketProps {
   onRemove: (productId: string, selectedColor?: string) => void;
   onUpdateQuantity: (productId: string, selectedColor: string | undefined, quantity: number) => void;
   onContinueShopping: () => void;
+  onRequestLogin: () => void;
   language: Language;
+  user: User | null;
 }
 
-const hasWholesalePrice = (item: BasketItem) => item.isWholesaleVisible && item.wholesalePriceUsd;
+const hasWholesalePrice = (item: BasketItem) => Boolean(item.isWholesaleVisible && item.wholesalePriceUsd);
 const getWholesalePrice = (item: BasketItem) => Number(item.wholesalePriceUsd || 0);
-const formatKzt = (price: number) => `${price.toLocaleString()} ₸`;
-const formatUsd = (price: number) => `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const getItemKey = (item: BasketItem) => `${item.id}::${item.selectedColor || ''}`;
+const getDefaultPrice = (item: BasketItem) =>
+  hasWholesalePrice(item) ? getWholesalePrice(item) : Number(item.price || 0);
+const formatKzt = (price: number) => `${price.toLocaleString('ru-RU')} KZT`;
+const formatUsd = (price: number) =>
+  `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const escapeHtml = (value: unknown) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 
-const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onContinueShopping, language }) => {
+const documentLabels: Record<Language, Record<string, string>> = {
+  en: {
+    warehouse: 'Warehouse No. 1 Almaty',
+    address: 'Almaty, 93A Ryskulov Avenue',
+    receipt: 'Sales receipt',
+    from: 'dated',
+    number: 'No.',
+    article: 'Article',
+    photo: 'Photo',
+    name: 'Description',
+    quantity: 'Qty',
+    unit: 'Unit',
+    price: 'Price',
+    amount: 'Amount',
+    pcs: 'pcs',
+    totalQuantity: 'Total items',
+    total: 'Total',
+    customer: 'Customer details',
+    download: 'Download PDF',
+    signIn: 'Sign in to download PDF',
+    editHint: 'Superadmin quotation prices',
+    subtotal: 'Subtotal',
+  },
+  ru: {
+    warehouse: 'Склад №1 Алматы',
+    address: 'Алматы, Проспект Турара Рыскулова, 93а',
+    receipt: 'Товарный чек',
+    from: 'от',
+    number: '№',
+    article: 'Артикул',
+    photo: 'Фото',
+    name: 'Наименование',
+    quantity: 'Кол-во',
+    unit: 'Ед.',
+    price: 'Цена',
+    amount: 'Сумма',
+    pcs: 'шт',
+    totalQuantity: 'Общее количество товаров',
+    total: 'Итого',
+    customer: 'Данные покупателя',
+    download: 'Скачать PDF',
+    signIn: 'Войдите, чтобы скачать PDF',
+    editHint: 'Цены товарного чека для суперадмина',
+    subtotal: 'Подытог',
+  },
+  kk: {
+    warehouse: '№1 қойма, Алматы',
+    address: 'Алматы, Тұрар Рысқұлов даңғылы, 93а',
+    receipt: 'Тауарлық чек',
+    from: 'күні',
+    number: '№',
+    article: 'Артикул',
+    photo: 'Фото',
+    name: 'Атауы',
+    quantity: 'Саны',
+    unit: 'Бір.',
+    price: 'Бағасы',
+    amount: 'Сомасы',
+    pcs: 'дана',
+    totalQuantity: 'Тауарлардың жалпы саны',
+    total: 'Барлығы',
+    customer: 'Сатып алушы деректері',
+    download: 'PDF жүктеу',
+    signIn: 'PDF жүктеу үшін кіріңіз',
+    editHint: 'Суперадминге арналған чек бағалары',
+    subtotal: 'Аралық сома',
+  },
+};
+
+const Basket: React.FC<BasketProps> = ({
+  items,
+  onRemove,
+  onUpdateQuantity,
+  onContinueShopping,
+  onRequestLogin,
+  language,
+  user,
+}) => {
   const t = translations;
+  const labels = documentLabels[language];
+  const isSuperuser = Boolean(user?.isSuperuser);
   const isWholesaleList = items.length > 0 && items.every(hasWholesalePrice);
-  const total = isWholesaleList
-    ? items.reduce((sum, item) => sum + getWholesalePrice(item) * item.quantity, 0)
-    : 0;
+  const currency = isWholesaleList ? 'USD' : 'KZT';
+  const [quotePrices, setQuotePrices] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setQuotePrices(current => {
+      const next: Record<string, number> = {};
+      items.forEach(item => {
+        const key = getItemKey(item);
+        next[key] = current[key] ?? getDefaultPrice(item);
+      });
+      return next;
+    });
+  }, [items]);
+
+  const total = useMemo(
+    () => items.reduce(
+      (sum, item) => sum + (quotePrices[getItemKey(item)] ?? getDefaultPrice(item)) * item.quantity,
+      0
+    ),
+    [items, quotePrices]
+  );
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const formatQuotePrice = (price: number) => currency === 'USD' ? formatUsd(price) : formatKzt(price);
 
   const handleConfirmPurchase = () => {
     if (items.length === 0) return;
 
     const orderDetails = items
       .map(item => {
-        const colorName = item.selectedColor ? t[item.selectedColor][language] : 'Standard';
-        const ep = isWholesaleList && hasWholesalePrice(item) ? getWholesalePrice(item) : 0;
-        const formattedPrice = isWholesaleList ? formatUsd(ep) : t.priceOnRequest[language];
+        const colorName = item.selectedColor ? (t[item.selectedColor]?.[language] || item.selectedColor) : 'Standard';
+        const unitPrice = quotePrices[getItemKey(item)] ?? getDefaultPrice(item);
+        const formattedPrice = unitPrice > 0 ? formatQuotePrice(unitPrice) : t.priceOnRequest[language];
         return `• *${item.name[language]}* (x${item.quantity})\n  Code: ${item.itemCode}\n  Finish: ${colorName}\n  Price: ${formattedPrice}\n  Link: https://topmax.kz/?product=${item.id}\n`;
       })
       .join('\n');
 
     const header = isWholesaleList ? 'TOPMAX wholesale shop list' : t.waMsgHeader[language];
-    const totalText = isWholesaleList ? `\n*${t.waMsgTotal[language]}: ${formatUsd(total)}*` : '';
+    const totalText = total > 0 ? `\n*${t.waMsgTotal[language]}: ${formatQuotePrice(total)}*` : '';
     const message = `${header}\n\n${t.waMsgIntro[language]}\n\n${orderDetails}${totalText}\n\n${t.waMsgFooter[language]}`;
+    window.open(`https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(message)}`, '_blank');
+  };
 
-    const whatsappUrl = `https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+  const handleCreatePdf = () => {
+    if (!user || user.isGuest) {
+      onRequestLogin();
+      return;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) return;
+
+    const now = new Date();
+    const locale = language === 'en' ? 'en-GB' : language === 'ru' ? 'ru-RU' : 'kk-KZ';
+    const date = new Intl.DateTimeFormat(locale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(now);
+    const receiptNumber =
+      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}` +
+      `${String(now.getDate()).padStart(2, '0')}-${String(now.getTime()).slice(-5)}`;
+    const rows = items.map((item, index) => {
+      const unitPrice = quotePrices[getItemKey(item)] ?? getDefaultPrice(item);
+      const printableUnitPrice = unitPrice > 0
+        ? formatQuotePrice(unitPrice)
+        : t.priceOnRequestShort[language];
+      const printableLineTotal = unitPrice > 0
+        ? formatQuotePrice(unitPrice * item.quantity)
+        : t.priceOnRequestShort[language];
+      const color = item.selectedColor ? (t[item.selectedColor]?.[language] || item.selectedColor) : '';
+      const itemName = [
+        item.name[language] || item.name.en,
+        item.dimensions,
+        color,
+      ].filter(Boolean).join(' ');
+
+      return `
+        <tr>
+          <td class="center">${index + 1}</td>
+          <td>${escapeHtml(item.itemCode)}</td>
+          <td class="photo">${item.imageUrls[0] ? `<img src="${escapeHtml(item.imageUrls[0])}" alt="">` : ''}</td>
+          <td>${escapeHtml(itemName)}</td>
+          <td class="center">${item.quantity}</td>
+          <td class="center">${escapeHtml(labels.pcs)}</td>
+          <td class="money">${escapeHtml(printableUnitPrice)}</td>
+          <td class="money">${escapeHtml(printableLineTotal)}</td>
+        </tr>`;
+    }).join('');
+
+    printWindow.document.write(`<!doctype html>
+      <html lang="${language}">
+        <head>
+          <meta charset="utf-8">
+          <title>${escapeHtml(labels.receipt)} ${escapeHtml(receiptNumber)}</title>
+          <style>
+            @page { size: A4; margin: 14mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; color: #111; font: 13px Arial, "Helvetica Neue", sans-serif; }
+            .header { display: flex; justify-content: space-between; gap: 32px; margin-bottom: 30px; }
+            .company { line-height: 1.7; }
+            .address { margin-top: 24px; font-weight: 700; }
+            .logo { width: 150px; text-align: center; color: #242424; }
+            .rings { display: flex; justify-content: center; height: 54px; }
+            .ring { width: 52px; height: 52px; margin-left: -14px; border: 5px solid currentColor; border-radius: 50%; }
+            .ring:first-child { margin-left: 0; }
+            .top { margin-top: 8px; font-size: 30px; font-weight: 900; line-height: .9; }
+            .max { padding-left: 8px; font-size: 17px; letter-spacing: 8px; }
+            h1 { margin: 0 0 24px; text-align: center; font-size: 20px; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            th { padding: 8px 5px; font-size: 12px; font-weight: 500; text-align: left; }
+            td { min-height: 64px; padding: 7px 5px; border-top: 1px solid #ddd; vertical-align: middle; overflow-wrap: anywhere; }
+            tbody tr:last-child td { border-bottom: 1px solid #ddd; }
+            .center { text-align: center; }
+            .money { text-align: right; white-space: nowrap; }
+            .photo img { display: block; width: 70px; height: 70px; margin: auto; object-fit: contain; }
+            .summary { display: grid; grid-template-columns: 1fr auto auto; gap: 48px; padding: 10px 6px 0 120px; font-size: 16px; font-weight: 700; }
+            .customer { margin-top: 22px; font-size: 18px; font-weight: 700; }
+            .customer-data { margin-top: 10px; font-size: 13px; font-weight: 400; line-height: 1.7; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company">
+              <div>${escapeHtml(labels.warehouse)}</div>
+              <div>TOP MAX</div>
+              <div class="address">${escapeHtml(labels.address)}</div>
+            </div>
+            <div class="logo">
+              <div class="rings"><span class="ring"></span><span class="ring"></span><span class="ring"></span></div>
+              <div class="top">TOP</div><div class="max">MAX</div>
+            </div>
+          </div>
+          <h1>${escapeHtml(labels.receipt)} ${escapeHtml(labels.number)} ${escapeHtml(receiptNumber)} ${escapeHtml(labels.from)} ${escapeHtml(date)}</h1>
+          <table>
+            <colgroup>
+              <col style="width:5%"><col style="width:10%"><col style="width:12%"><col style="width:35%">
+              <col style="width:7%"><col style="width:6%"><col style="width:12%"><col style="width:13%">
+            </colgroup>
+            <thead><tr>
+              <th class="center">${escapeHtml(labels.number)}</th><th>${escapeHtml(labels.article)}</th>
+              <th>${escapeHtml(labels.photo)}</th><th>${escapeHtml(labels.name)}</th>
+              <th class="center">${escapeHtml(labels.quantity)}</th><th class="center">${escapeHtml(labels.unit)}</th>
+              <th class="money">${escapeHtml(labels.price)}</th><th class="money">${escapeHtml(labels.amount)}</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="summary">
+            <span>${escapeHtml(labels.totalQuantity)} ${totalQuantity}</span>
+            <span>${escapeHtml(labels.total)}</span>
+            <span>${escapeHtml(total > 0 ? formatQuotePrice(total) : t.priceOnRequestShort[language])}</span>
+          </div>
+          <div class="customer">${escapeHtml(labels.customer)}
+            <div class="customer-data">${escapeHtml(user.name)}${user.email ? `<br>${escapeHtml(user.email)}` : ''}</div>
+          </div>
+        </body>
+      </html>`);
+    printWindow.document.close();
+
+    let printed = false;
+    const printWhenReady = () => {
+      if (printed || printWindow.closed) return;
+      printed = true;
+      printWindow.focus();
+      printWindow.print();
+    };
+    const pendingImages = Array.from(printWindow.document.images).filter(image => !image.complete);
+    if (pendingImages.length === 0) {
+      window.setTimeout(printWhenReady, 250);
+    } else {
+      let remaining = pendingImages.length;
+      const onImageDone = () => {
+        remaining -= 1;
+        if (remaining <= 0) printWhenReady();
+      };
+      pendingImages.forEach(image => {
+        image.addEventListener('load', onImageDone, { once: true });
+        image.addEventListener('error', onImageDone, { once: true });
+      });
+      window.setTimeout(printWhenReady, 3000);
+    }
   };
 
   return (
@@ -60,19 +309,13 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
 
       {items.length === 0 ? (
         <div className="bg-white rounded-[2rem] px-8 py-20 text-center shadow-lg border border-gray-100 flex flex-col items-center">
-          <svg className="mb-8 h-36 w-36 text-slate-100" viewBox="0 0 144 144" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg className="mb-8 h-36 w-36 text-slate-100" viewBox="0 0 144 144" fill="none">
             <circle cx="72" cy="72" r="64" fill="currentColor" />
             <path d="M48 60h48l-6 40H54L48 60z" fill="white" stroke="#e2e8f0" strokeWidth="2" />
             <path d="M60 60V52a12 12 0 0 1 24 0v8" stroke="#cbd5e1" strokeWidth="3" strokeLinecap="round" />
-            <circle cx="65" cy="88" r="3" fill="#cbd5e1" />
-            <circle cx="79" cy="88" r="3" fill="#cbd5e1" />
           </svg>
           <h2 className="font-display text-3xl font-bold text-slate-800 mb-3">{t.basketEmpty[language]}</h2>
-          <p className="text-slate-400 text-base mb-10 max-w-xs">Browse our premium sanitary collection and add items you love.</p>
-          <button
-            onClick={onContinueShopping}
-            className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-base shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
-          >
+          <button onClick={onContinueShopping} className="mt-8 bg-blue-600 text-white px-10 py-4 rounded-2xl font-black text-base shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
             {t.catalog[language]}
           </button>
         </div>
@@ -80,36 +323,34 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-6">
             {items.map((item, idx) => {
+              const unitPrice = quotePrices[getItemKey(item)] ?? getDefaultPrice(item);
               return (
                 <div key={`${item.id}-${item.selectedColor}-${idx}`} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center gap-6 group relative">
                   <div className="w-32 h-32 bg-gray-50 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
-                    <img src={item.imageUrls[0]} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500" />
+                    <img src={item.imageUrls[0]} alt="" className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500" />
                   </div>
                   <div className="flex-grow text-center sm:text-left">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
                       <span className="bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">{t[item.category][language]}</span>
                       {item.selectedColor && (
                         <span className="bg-slate-900 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full">
-                          {t[item.selectedColor][language]}
+                          {t[item.selectedColor]?.[language] || item.selectedColor}
                         </span>
                       )}
                     </div>
                     <h3 className="text-xl font-black text-slate-900 mb-1">{item.name[language]}</h3>
+                    <p className="text-xs font-bold text-slate-400">{item.itemCode}</p>
                     <div className="flex items-center justify-center sm:justify-start gap-6 mt-4">
-                       <div className="flex items-baseline gap-2">
-                         {isWholesaleList && hasWholesalePrice(item) ? (
-                           <span className="text-2xl font-serif font-black text-emerald-500">{formatUsd(getWholesalePrice(item) * item.quantity)}</span>
-                         ) : (
-                           <span className="max-w-56 text-sm font-black uppercase leading-snug tracking-wide text-blue-600">
-                             {t.priceOnRequest[language]}
-                           </span>
-                         )}
-                       </div>
-                       <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-gray-100">
-                          <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, Math.max(1, item.quantity - 1))} className="w-10 h-10 flex items-center justify-center text-slate-900 font-black text-xl hover:bg-white rounded-lg">-</button>
-                          <span className="w-10 text-center font-black text-lg text-slate-900">{item.quantity}</span>
-                          <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-slate-900 font-black text-xl hover:bg-white rounded-lg">+</button>
-                       </div>
+                      {unitPrice > 0 ? (
+                        <span className="text-2xl font-serif font-black text-emerald-500">{formatQuotePrice(unitPrice * item.quantity)}</span>
+                      ) : (
+                        <span className="max-w-56 text-sm font-black uppercase leading-snug tracking-wide text-blue-600">{t.priceOnRequest[language]}</span>
+                      )}
+                      <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-gray-100">
+                        <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, Math.max(1, item.quantity - 1))} className="w-10 h-10 flex items-center justify-center text-slate-900 font-black text-xl hover:bg-white rounded-lg">-</button>
+                        <span className="w-10 text-center font-black text-lg text-slate-900">{item.quantity}</span>
+                        <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-slate-900 font-black text-xl hover:bg-white rounded-lg">+</button>
+                      </div>
                     </div>
                   </div>
                   <button onClick={() => onRemove(item.id, item.selectedColor)} className="sm:absolute top-6 right-6 text-slate-200 hover:text-red-500 transition-colors p-2">
@@ -119,31 +360,62 @@ const Basket: React.FC<BasketProps> = ({ items, onRemove, onUpdateQuantity, onCo
               );
             })}
           </div>
+
           <div className="lg:col-span-4">
             <div className="bg-slate-900 rounded-[2rem] p-8 text-white shadow-xl sticky top-28 border-t-8 border-blue-600">
-               <h2 className="text-xl font-black mb-8 tracking-widest text-center uppercase">{t.summary[language]}</h2>
-               <div className="space-y-4 mb-8">
-                 <div className="flex justify-between items-center opacity-40 uppercase tracking-widest font-black text-[10px]">
-                    <span>Subtotal</span>
-                    <span>{isWholesaleList ? formatUsd(total) : t.priceOnRequest[language]}</span>
-                 </div>
-                 <div className="flex justify-between items-center border-t border-white/10 pt-4">
-                    <span className="text-sm font-black uppercase tracking-widest">Total</span>
-                    <span className={`font-black ${isWholesaleList ? 'text-3xl font-serif text-blue-400' : 'max-w-44 text-right text-sm uppercase leading-snug tracking-wide text-blue-300'}`}>
-                      {isWholesaleList ? formatUsd(total) : t.priceOnRequest[language]}
-                    </span>
-                 </div>
-               </div>
+              <h2 className="text-xl font-black mb-8 tracking-widest text-center uppercase">{t.summary[language]}</h2>
 
-               <button onClick={handleConfirmPurchase} className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95 group">
-                 <span className="text-2xl">🟢</span>
-                 {t.confirmOrder[language]}
-               </button>
+              {isSuperuser && (
+                <div className="mb-6 rounded-2xl bg-white/5 p-4">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-blue-300">{labels.editHint}</p>
+                  <div className="space-y-3">
+                    {items.map(item => (
+                      <label key={getItemKey(item)} className="grid grid-cols-[1fr_110px] items-center gap-3">
+                        <span className="truncate text-xs font-bold text-slate-300">{item.itemCode}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step={currency === 'USD' ? '0.01' : '1'}
+                          value={quotePrices[getItemKey(item)] ?? getDefaultPrice(item)}
+                          onChange={event => setQuotePrices(current => ({
+                            ...current,
+                            [getItemKey(item)]: Math.max(0, Number(event.target.value) || 0),
+                          }))}
+                          className="w-full rounded-lg border border-white/10 bg-white px-3 py-2 text-right text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-               <div className="mt-8 flex items-start gap-3 p-4 bg-white/5 rounded-2xl">
-                  <span className="text-lg">🛡️</span>
-                  <p className="text-slate-400 text-[11px] leading-relaxed font-medium">{t.waCheckoutNote[language]}</p>
-               </div>
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-center opacity-40 uppercase tracking-widest font-black text-[10px]">
+                  <span>{labels.subtotal}</span>
+                  <span>{total > 0 ? formatQuotePrice(total) : t.priceOnRequest[language]}</span>
+                </div>
+                <div className="flex justify-between items-center border-t border-white/10 pt-4">
+                  <span className="text-sm font-black uppercase tracking-widest">{labels.total}</span>
+                  <span className={`font-black ${total > 0 ? 'text-3xl font-serif text-blue-400' : 'max-w-44 text-right text-sm uppercase leading-snug tracking-wide text-blue-300'}`}>
+                    {total > 0 ? formatQuotePrice(total) : t.priceOnRequest[language]}
+                  </span>
+                </div>
+              </div>
+
+              <button onClick={handleCreatePdf} className="mb-3 w-full bg-white py-4 rounded-2xl font-black text-base text-slate-900 transition-all hover:bg-slate-100 active:scale-95 flex items-center justify-center gap-3">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" />
+                </svg>
+                {user && !user.isGuest ? labels.download : labels.signIn}
+              </button>
+
+              <button onClick={handleConfirmPurchase} className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95">
+                {t.confirmOrder[language]}
+              </button>
+
+              <div className="mt-8 flex items-start gap-3 p-4 bg-white/5 rounded-2xl">
+                <p className="text-slate-400 text-[11px] leading-relaxed font-medium">{t.waCheckoutNote[language]}</p>
+              </div>
             </div>
           </div>
         </div>
