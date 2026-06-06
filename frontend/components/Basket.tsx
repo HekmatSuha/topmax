@@ -189,14 +189,14 @@ const Basket: React.FC<BasketProps> = ({
 
       return `
         <tr>
-          <td class="center">${index + 1}</td>
-          <td>${escapeHtml(item.itemCode)}</td>
-          <td class="photo">${item.imageUrls[0] ? `<img src="${escapeHtml(item.imageUrls[0])}" alt="">` : ''}</td>
-          <td>${escapeHtml(itemName)}</td>
-          <td class="center">${item.quantity}</td>
-          <td class="center">${escapeHtml(labels.pcs)}</td>
+          <td class="center row-number">${index + 1}</td>
+          <td><span class="article">${escapeHtml(item.itemCode)}</span></td>
+          <td class="photo"><div class="photo-frame">${item.imageUrls[0] ? `<img src="${escapeHtml(item.imageUrls[0])}" alt="">` : ''}</div></td>
+          <td class="product-name">${escapeHtml(itemName)}</td>
+          <td class="center quantity">${item.quantity}</td>
+          <td class="center unit">${escapeHtml(labels.pcs)}</td>
           <td class="money">${escapeHtml(printableUnitPrice)}</td>
-          <td class="money">${escapeHtml(printableLineTotal)}</td>
+          <td class="money line-total">${escapeHtml(printableLineTotal)}</td>
         </tr>`;
     }).join('');
 
@@ -206,64 +206,145 @@ const Basket: React.FC<BasketProps> = ({
           <meta charset="utf-8">
           <title>${escapeHtml(labels.receipt)} ${escapeHtml(receiptNumber)}</title>
           <style>
-            @page { size: A4; margin: 14mm; }
+            @page { size: A4; margin: 10mm; }
             * { box-sizing: border-box; }
-            body { margin: 0; color: #111; font: 13px Arial, "Helvetica Neue", sans-serif; }
-            .header { display: flex; justify-content: space-between; gap: 32px; margin-bottom: 30px; }
-            .company { line-height: 1.7; }
-            .address { margin-top: 24px; font-weight: 700; }
-            .logo { width: 150px; text-align: center; color: #242424; }
-            .rings { display: flex; justify-content: center; height: 54px; }
-            .ring { width: 52px; height: 52px; margin-left: -14px; border: 5px solid currentColor; border-radius: 50%; }
+            html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body {
+              margin: 0;
+              color: #172033;
+              background: #fff;
+              font: 12px Arial, "Helvetica Neue", sans-serif;
+            }
+            .page { min-height: 267mm; border: 1px solid #e5eaf2; border-radius: 16px; overflow: hidden; }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 32px;
+              padding: 24px 28px;
+              color: #fff;
+              background: linear-gradient(135deg, #111827 0%, #1e3a8a 100%);
+            }
+            .company-name { margin-bottom: 6px; font-size: 24px; font-weight: 900; letter-spacing: .04em; }
+            .warehouse { color: #bfdbfe; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+            .address { margin-top: 12px; color: #e5e7eb; font-size: 11px; }
+            .logo { width: 130px; text-align: center; color: #fff; }
+            .rings { display: flex; justify-content: center; height: 44px; }
+            .ring { width: 43px; height: 43px; margin-left: -12px; border: 4px solid currentColor; border-radius: 50%; }
             .ring:first-child { margin-left: 0; }
-            .top { margin-top: 8px; font-size: 30px; font-weight: 900; line-height: .9; }
-            .max { padding-left: 8px; font-size: 17px; letter-spacing: 8px; }
-            h1 { margin: 0 0 24px; text-align: center; font-size: 20px; }
+            .top { margin-top: 7px; font-size: 24px; font-weight: 900; line-height: .85; }
+            .max { padding-left: 6px; font-size: 12px; letter-spacing: 7px; }
+            .content { padding: 24px 28px 26px; }
+            .invoice-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+            .invoice-label { margin-bottom: 6px; color: #2563eb; font-size: 10px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+            h1 { margin: 0; color: #111827; font-size: 26px; line-height: 1.15; }
+            .invoice-meta { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 8px; min-width: 280px; }
+            .meta-card { padding: 10px 12px; border: 1px solid #e5eaf2; border-radius: 10px; background: #f8fafc; }
+            .meta-label { display: block; margin-bottom: 4px; color: #94a3b8; font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+            .meta-value { color: #172033; font-size: 11px; font-weight: 800; }
+            .table-wrap { overflow: hidden; border: 1px solid #dfe5ef; border-radius: 12px; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            th { padding: 8px 5px; font-size: 12px; font-weight: 500; text-align: left; }
-            td { min-height: 64px; padding: 7px 5px; border-top: 1px solid #ddd; vertical-align: middle; overflow-wrap: anywhere; }
-            tbody tr:last-child td { border-bottom: 1px solid #ddd; }
+            thead { color: #fff; background: #2563eb; }
+            th { padding: 10px 6px; font-size: 9px; font-weight: 800; letter-spacing: .04em; text-align: left; text-transform: uppercase; }
+            td { height: 82px; padding: 8px 6px; border-top: 1px solid #e8edf4; vertical-align: middle; overflow-wrap: anywhere; }
+            tbody tr:nth-child(even) { background: #f8fafc; }
             .center { text-align: center; }
-            .money { text-align: right; white-space: nowrap; }
-            .photo img { display: block; width: 70px; height: 70px; margin: auto; object-fit: contain; }
-            .summary { display: grid; grid-template-columns: 1fr auto auto; gap: 48px; padding: 10px 6px 0 120px; font-size: 16px; font-weight: 700; }
-            .customer { margin-top: 22px; font-size: 18px; font-weight: 700; }
-            .customer-data { margin-top: 10px; font-size: 13px; font-weight: 400; line-height: 1.7; }
+            .row-number { color: #94a3b8; font-weight: 800; }
+            .article { display: inline-block; padding: 5px 7px; border-radius: 6px; color: #1d4ed8; background: #eff6ff; font-size: 10px; font-weight: 800; }
+            .photo-frame { display: flex; width: 64px; height: 64px; margin: auto; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e5eaf2; border-radius: 9px; background: #fff; }
+            .photo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+            .product-name { color: #172033; font-size: 11px; font-weight: 700; line-height: 1.45; }
+            .quantity { font-size: 13px; font-weight: 900; }
+            .unit { color: #64748b; }
+            .money { text-align: right; white-space: nowrap; font-weight: 700; }
+            .line-total { color: #111827; font-weight: 900; }
+            .below-table { display: grid; grid-template-columns: 1fr 270px; gap: 24px; align-items: start; margin-top: 20px; }
+            .customer { padding: 16px; border: 1px solid #e5eaf2; border-radius: 12px; background: #f8fafc; }
+            .section-label { margin-bottom: 10px; color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+            .customer-name { color: #172033; font-size: 15px; font-weight: 900; }
+            .customer-email { margin-top: 5px; color: #64748b; font-size: 11px; }
+            .items-count { margin-top: 14px; color: #64748b; font-size: 10px; font-weight: 700; }
+            .summary { overflow: hidden; border-radius: 12px; color: #fff; background: #111827; }
+            .summary-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+            .summary-row:last-child { border-bottom: 0; }
+            .summary-label { color: #94a3b8; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+            .summary-value { font-size: 12px; font-weight: 800; }
+            .grand-total { padding-top: 15px; padding-bottom: 15px; background: #2563eb; }
+            .grand-total .summary-label { color: #dbeafe; }
+            .grand-total .summary-value { font-size: 20px; font-weight: 900; }
+            .footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 28px; padding-top: 14px; border-top: 1px solid #e5eaf2; color: #94a3b8; font-size: 9px; }
+            .footer strong { color: #64748b; }
+            tr { break-inside: avoid; page-break-inside: avoid; }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="company">
-              <div>${escapeHtml(labels.warehouse)}</div>
-              <div>TOP MAX</div>
-              <div class="address">${escapeHtml(labels.address)}</div>
+          <div class="page">
+            <div class="header">
+              <div class="company">
+                <div class="warehouse">${escapeHtml(labels.warehouse)}</div>
+                <div class="company-name">TOP MAX</div>
+                <div class="address">${escapeHtml(labels.address)}</div>
+              </div>
+              <div class="logo">
+                <div class="rings"><span class="ring"></span><span class="ring"></span><span class="ring"></span></div>
+                <div class="top">TOP</div><div class="max">MAX</div>
+              </div>
             </div>
-            <div class="logo">
-              <div class="rings"><span class="ring"></span><span class="ring"></span><span class="ring"></span></div>
-              <div class="top">TOP</div><div class="max">MAX</div>
+            <div class="content">
+              <div class="invoice-heading">
+                <div>
+                  <div class="invoice-label">TOP MAX DOCUMENT</div>
+                  <h1>${escapeHtml(labels.receipt)}</h1>
+                </div>
+                <div class="invoice-meta">
+                  <div class="meta-card">
+                    <span class="meta-label">${escapeHtml(labels.number)}</span>
+                    <span class="meta-value">${escapeHtml(receiptNumber)}</span>
+                  </div>
+                  <div class="meta-card">
+                    <span class="meta-label">${escapeHtml(labels.from)}</span>
+                    <span class="meta-value">${escapeHtml(date)}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <colgroup>
+                    <col style="width:5%"><col style="width:10%"><col style="width:12%"><col style="width:35%">
+                    <col style="width:7%"><col style="width:6%"><col style="width:12%"><col style="width:13%">
+                  </colgroup>
+                  <thead><tr>
+                    <th class="center">${escapeHtml(labels.number)}</th><th>${escapeHtml(labels.article)}</th>
+                    <th>${escapeHtml(labels.photo)}</th><th>${escapeHtml(labels.name)}</th>
+                    <th class="center">${escapeHtml(labels.quantity)}</th><th class="center">${escapeHtml(labels.unit)}</th>
+                    <th class="money">${escapeHtml(labels.price)}</th><th class="money">${escapeHtml(labels.amount)}</th>
+                  </tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>
+              <div class="below-table">
+                <div class="customer">
+                  <div class="section-label">${escapeHtml(labels.customer)}</div>
+                  <div class="customer-name">${escapeHtml(user.name)}</div>
+                  ${user.email ? `<div class="customer-email">${escapeHtml(user.email)}</div>` : ''}
+                  <div class="items-count">${escapeHtml(labels.totalQuantity)}: ${totalQuantity}</div>
+                </div>
+                <div class="summary">
+                  <div class="summary-row">
+                    <span class="summary-label">${escapeHtml(labels.totalQuantity)}</span>
+                    <span class="summary-value">${totalQuantity}</span>
+                  </div>
+                  <div class="summary-row grand-total">
+                    <span class="summary-label">${escapeHtml(labels.total)}</span>
+                    <span class="summary-value">${escapeHtml(total > 0 ? formatQuotePrice(total) : t.priceOnRequestShort[language])}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="footer">
+                <span><strong>TOP MAX</strong> · topmax.kz · info@topmax.kz</span>
+                <span>${escapeHtml(labels.address)}</span>
+              </div>
             </div>
-          </div>
-          <h1>${escapeHtml(labels.receipt)} ${escapeHtml(labels.number)} ${escapeHtml(receiptNumber)} ${escapeHtml(labels.from)} ${escapeHtml(date)}</h1>
-          <table>
-            <colgroup>
-              <col style="width:5%"><col style="width:10%"><col style="width:12%"><col style="width:35%">
-              <col style="width:7%"><col style="width:6%"><col style="width:12%"><col style="width:13%">
-            </colgroup>
-            <thead><tr>
-              <th class="center">${escapeHtml(labels.number)}</th><th>${escapeHtml(labels.article)}</th>
-              <th>${escapeHtml(labels.photo)}</th><th>${escapeHtml(labels.name)}</th>
-              <th class="center">${escapeHtml(labels.quantity)}</th><th class="center">${escapeHtml(labels.unit)}</th>
-              <th class="money">${escapeHtml(labels.price)}</th><th class="money">${escapeHtml(labels.amount)}</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <div class="summary">
-            <span>${escapeHtml(labels.totalQuantity)} ${totalQuantity}</span>
-            <span>${escapeHtml(labels.total)}</span>
-            <span>${escapeHtml(total > 0 ? formatQuotePrice(total) : t.priceOnRequestShort[language])}</span>
-          </div>
-          <div class="customer">${escapeHtml(labels.customer)}
-            <div class="customer-data">${escapeHtml(user.name)}${user.email ? `<br>${escapeHtml(user.email)}` : ''}</div>
           </div>
         </body>
       </html>`);
