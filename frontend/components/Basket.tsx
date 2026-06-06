@@ -81,6 +81,10 @@ const documentLabels: Record<Language, Record<string, string>> = {
     signIn: 'Sign in to download PDF',
     editHint: 'Superadmin quotation prices',
     subtotal: 'Subtotal',
+    finish: 'Finish',
+    itemCode: 'Article',
+    lineTotal: 'Line total',
+    orderItems: 'Items',
   },
   ru: {
     warehouse: 'Склад №1 Алматы',
@@ -107,6 +111,10 @@ const documentLabels: Record<Language, Record<string, string>> = {
     signIn: 'Войдите, чтобы скачать PDF',
     editHint: 'Цены товарного чека для суперадмина',
     subtotal: 'Подытог',
+    finish: 'Цвет',
+    itemCode: 'Артикул',
+    lineTotal: 'Сумма',
+    orderItems: 'Товары',
   },
   kk: {
     warehouse: '№1 қойма, Алматы',
@@ -133,6 +141,10 @@ const documentLabels: Record<Language, Record<string, string>> = {
     signIn: 'PDF жүктеу үшін кіріңіз',
     editHint: 'Суперадминге арналған чек бағалары',
     subtotal: 'Аралық сома',
+    finish: 'Түсі',
+    itemCode: 'Артикул',
+    lineTotal: 'Сомасы',
+    orderItems: 'Тауарлар',
   },
 };
 
@@ -192,16 +204,79 @@ const Basket: React.FC<BasketProps> = ({
     return `${header}\n\n${t.waMsgIntro[language]}\n\n${orderDetails}${totalText}\n\n${t.waMsgFooter[language]}`;
   };
 
+  const buildOrganizedWhatsAppMessage = () => {
+    if (items.length === 0) return;
+
+    const orderDetails = items.map((item, index) => {
+      const colorName = item.selectedColor
+        ? (t[item.selectedColor]?.[language] || item.selectedColor)
+        : language === 'en' ? 'Standard' : 'Стандарт';
+      const unitPrice = quotePrices[getItemKey(item)] ?? getDefaultPrice(item);
+      const formattedPrice = unitPrice > 0 ? formatQuotePrice(unitPrice) : t.priceOnRequest[language];
+      const lineTotal = unitPrice > 0
+        ? formatQuotePrice(unitPrice * item.quantity)
+        : t.priceOnRequest[language];
+
+      return [
+        `*${index + 1}. ${item.name[language] || item.name.en}*`,
+        `${labels.itemCode}: ${item.itemCode}`,
+        `${labels.finish}: ${colorName}`,
+        `${labels.quantity}: ${item.quantity} ${labels.pcs}`,
+        `${labels.price}: ${formattedPrice}`,
+        `${labels.lineTotal}: *${lineTotal}*`,
+        `https://topmax.kz/?product=${item.id}`,
+      ].join('\n');
+    }).join('\n\n');
+
+    const header = isWholesaleList ? '*TOPMAX WHOLESALE ORDER*' : t.waMsgHeader[language];
+    const totalText = total > 0
+      ? `*${t.waMsgTotal[language]}: ${formatQuotePrice(total)}*`
+      : `*${t.waMsgTotal[language]}: ${t.priceOnRequest[language]}*`;
+
+    return [
+      header,
+      t.waMsgIntro[language],
+      `*${labels.orderItems}:*`,
+      orderDetails,
+      '━━━━━━━━━━━━━━',
+      `*${labels.totalQuantity}: ${totalQuantity}*`,
+      totalText,
+      t.waMsgFooter[language],
+    ].join('\n\n');
+  };
+
+  const handleConfirmPurchase = () => {
+    const message = buildOrganizedWhatsAppMessage();
+    if (!message) return;
+    window.open(
+      `https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(message)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
   const handleCreatePdf = async (action: PdfAction) => {
     if (!user || user.isGuest) {
       onRequestLogin();
       return;
     }
 
+    const whatsappMessage = action === 'whatsapp' ? buildOrganizedWhatsAppMessage() : '';
+    const whatsappUrl = action === 'whatsapp'
+      ? `https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(
+          `${whatsappMessage}\n\nThe PDF invoice is being downloaded. Please attach it to this chat.`
+        )}`
+      : '';
+    const supportsMobileFileShare =
+      action === 'whatsapp' &&
+      Boolean(navigator.share) &&
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const previewWindow = action === 'view' ? window.open('', '_blank') : null;
-    const whatsappWindow = action === 'whatsapp' ? window.open('', '_blank') : null;
+    const whatsappWindow =
+      action === 'whatsapp' && !supportsMobileFileShare
+        ? window.open(whatsappUrl, '_blank')
+        : null;
     if (action === 'view' && !previewWindow) return;
-    if (action === 'whatsapp' && !whatsappWindow) return;
     setIsPdfMenuOpen(false);
     setIsGeneratingPdf(true);
 
@@ -256,7 +331,6 @@ const Basket: React.FC<BasketProps> = ({
     if (!invoiceDocument) {
       iframe.remove();
       previewWindow?.close();
-      whatsappWindow?.close();
       setIsGeneratingPdf(false);
       return;
     }
@@ -470,11 +544,10 @@ const Basket: React.FC<BasketProps> = ({
         await navigator.share({
           title: labels.receipt,
           text: action === 'whatsapp'
-            ? buildWhatsAppMessage()
+            ? whatsappMessage
             : `${labels.receipt} ${labels.number} ${receiptNumber}`,
           files: [file],
         });
-        whatsappWindow?.close();
       } else {
         const objectUrl = URL.createObjectURL(blob);
         if (action === 'view' && previewWindow) {
@@ -488,13 +561,7 @@ const Basket: React.FC<BasketProps> = ({
           link.remove();
         }
         if (action === 'whatsapp') {
-          const message = buildWhatsAppMessage();
-          const whatsappUrl = `https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(
-            `${message}\n\nPDF downloaded. Please attach the downloaded invoice to this chat.`
-          )}`;
-          if (whatsappWindow) {
-            whatsappWindow.location.href = whatsappUrl;
-          } else {
+          if (!whatsappWindow && !supportsMobileFileShare) {
             window.location.href = whatsappUrl;
           }
         }
@@ -503,7 +570,6 @@ const Basket: React.FC<BasketProps> = ({
     } catch (error) {
       console.error('Failed to generate PDF:', error);
       previewWindow?.close();
-      whatsappWindow?.close();
     } finally {
       iframe.remove();
       setIsGeneratingPdf(false);
@@ -661,9 +727,8 @@ const Basket: React.FC<BasketProps> = ({
               </div>
 
               <button
-                onClick={() => handleCreatePdf('whatsapp')}
-                disabled={isGeneratingPdf}
-                className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95 disabled:cursor-wait disabled:opacity-70"
+                onClick={handleConfirmPurchase}
+                className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95"
               >
                 {t.confirmOrder[language]}
               </button>
