@@ -13,6 +13,8 @@ interface BasketProps {
   user: User | null;
 }
 
+type PdfAction = 'view' | 'send' | 'download' | 'whatsapp';
+
 const hasWholesalePrice = (item: BasketItem) => Boolean(item.isWholesaleVisible && item.wholesalePriceUsd);
 const getWholesalePrice = (item: BasketItem) => Number(item.wholesalePriceUsd || 0);
 const getItemKey = (item: BasketItem) => `${item.id}::${item.selectedColor || ''}`;
@@ -28,6 +30,30 @@ const escapeHtml = (value: unknown) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+
+const cloneWithComputedStyles = (source: HTMLElement) => {
+  const clone = source.cloneNode(true) as HTMLElement;
+  const sourceElements = [source, ...Array.from(source.querySelectorAll<HTMLElement>('*'))];
+  const clonedElements = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))];
+
+  sourceElements.forEach((element, index) => {
+    const clonedElement = clonedElements[index];
+    if (!clonedElement) return;
+
+    const computedStyle = element.ownerDocument.defaultView?.getComputedStyle(element);
+    if (!computedStyle) return;
+
+    for (const property of Array.from(computedStyle)) {
+      clonedElement.style.setProperty(
+        property,
+        computedStyle.getPropertyValue(property),
+        computedStyle.getPropertyPriority(property)
+      );
+    }
+  });
+
+  return clone;
+};
 
 const documentLabels: Record<Language, Record<string, string>> = {
   en: {
@@ -47,7 +73,11 @@ const documentLabels: Record<Language, Record<string, string>> = {
     totalQuantity: 'Total items',
     total: 'Total',
     customer: 'Customer details',
-    download: 'Download PDF',
+    pdfOptions: 'PDF options',
+    view: 'View',
+    send: 'Send',
+    download: 'Download',
+    preparing: 'Preparing PDF...',
     signIn: 'Sign in to download PDF',
     editHint: 'Superadmin quotation prices',
     subtotal: 'Subtotal',
@@ -69,7 +99,11 @@ const documentLabels: Record<Language, Record<string, string>> = {
     totalQuantity: 'Общее количество товаров',
     total: 'Итого',
     customer: 'Данные покупателя',
-    download: 'Скачать PDF',
+    pdfOptions: 'Действия с PDF',
+    view: 'Посмотреть',
+    send: 'Отправить',
+    download: 'Скачать',
+    preparing: 'Подготовка PDF...',
     signIn: 'Войдите, чтобы скачать PDF',
     editHint: 'Цены товарного чека для суперадмина',
     subtotal: 'Подытог',
@@ -91,7 +125,11 @@ const documentLabels: Record<Language, Record<string, string>> = {
     totalQuantity: 'Тауарлардың жалпы саны',
     total: 'Барлығы',
     customer: 'Сатып алушы деректері',
-    download: 'PDF жүктеу',
+    pdfOptions: 'PDF әрекеттері',
+    view: 'Қарау',
+    send: 'Жіберу',
+    download: 'Жүктеу',
+    preparing: 'PDF дайындалуда...',
     signIn: 'PDF жүктеу үшін кіріңіз',
     editHint: 'Суперадминге арналған чек бағалары',
     subtotal: 'Аралық сома',
@@ -113,6 +151,8 @@ const Basket: React.FC<BasketProps> = ({
   const isWholesaleList = items.length > 0 && items.every(hasWholesalePrice);
   const currency = isWholesaleList ? 'USD' : 'KZT';
   const [quotePrices, setQuotePrices] = useState<Record<string, number>>({});
+  const [isPdfMenuOpen, setIsPdfMenuOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   useEffect(() => {
     setQuotePrices(current => {
@@ -135,7 +175,7 @@ const Basket: React.FC<BasketProps> = ({
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const formatQuotePrice = (price: number) => currency === 'USD' ? formatUsd(price) : formatKzt(price);
 
-  const handleConfirmPurchase = () => {
+  const buildWhatsAppMessage = () => {
     if (items.length === 0) return;
 
     const orderDetails = items
@@ -149,18 +189,21 @@ const Basket: React.FC<BasketProps> = ({
 
     const header = isWholesaleList ? 'TOPMAX wholesale shop list' : t.waMsgHeader[language];
     const totalText = total > 0 ? `\n*${t.waMsgTotal[language]}: ${formatQuotePrice(total)}*` : '';
-    const message = `${header}\n\n${t.waMsgIntro[language]}\n\n${orderDetails}${totalText}\n\n${t.waMsgFooter[language]}`;
-    window.open(`https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(message)}`, '_blank');
+    return `${header}\n\n${t.waMsgIntro[language]}\n\n${orderDetails}${totalText}\n\n${t.waMsgFooter[language]}`;
   };
 
-  const handleCreatePdf = () => {
+  const handleCreatePdf = async (action: PdfAction) => {
     if (!user || user.isGuest) {
       onRequestLogin();
       return;
     }
 
-    const printWindow = window.open('', '_blank', 'width=1100,height=800');
-    if (!printWindow) return;
+    const previewWindow = action === 'view' ? window.open('', '_blank') : null;
+    const whatsappWindow = action === 'whatsapp' ? window.open('', '_blank') : null;
+    if (action === 'view' && !previewWindow) return;
+    if (action === 'whatsapp' && !whatsappWindow) return;
+    setIsPdfMenuOpen(false);
+    setIsGeneratingPdf(true);
 
     const now = new Date();
     const locale = language === 'en' ? 'en-GB' : language === 'ru' ? 'ru-RU' : 'kk-KZ';
@@ -200,7 +243,26 @@ const Basket: React.FC<BasketProps> = ({
         </tr>`;
     }).join('');
 
-    printWindow.document.write(`<!doctype html>
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-10000px';
+    iframe.style.top = '0';
+    iframe.style.width = '794px';
+    iframe.style.height = '1123px';
+    iframe.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(iframe);
+
+    const invoiceDocument = iframe.contentDocument;
+    if (!invoiceDocument) {
+      iframe.remove();
+      previewWindow?.close();
+      whatsappWindow?.close();
+      setIsGeneratingPdf(false);
+      return;
+    }
+
+    invoiceDocument.open();
+    invoiceDocument.write(`<!doctype html>
       <html lang="${language}">
         <head>
           <meta charset="utf-8">
@@ -341,36 +403,110 @@ const Basket: React.FC<BasketProps> = ({
                 </div>
               </div>
               <div class="footer">
-                <span><strong>TOP MAX</strong> · topmax.kz · info@topmax.kz</span>
+                <span><strong>TOP MAX</strong> · topmax.kz</span>
                 <span>${escapeHtml(labels.address)}</span>
               </div>
             </div>
           </div>
         </body>
       </html>`);
-    printWindow.document.close();
+    invoiceDocument.close();
 
-    let printed = false;
-    const printWhenReady = () => {
-      if (printed || printWindow.closed) return;
-      printed = true;
-      printWindow.focus();
-      printWindow.print();
-    };
-    const pendingImages = Array.from(printWindow.document.images).filter(image => !image.complete);
-    if (pendingImages.length === 0) {
-      window.setTimeout(printWhenReady, 250);
-    } else {
-      let remaining = pendingImages.length;
-      const onImageDone = () => {
-        remaining -= 1;
-        if (remaining <= 0) printWhenReady();
-      };
-      pendingImages.forEach(image => {
-        image.addEventListener('load', onImageDone, { once: true });
-        image.addEventListener('error', onImageDone, { once: true });
-      });
-      window.setTimeout(printWhenReady, 3000);
+    try {
+      const { default: html2pdf } = await import('html2pdf.js');
+      const pendingImages = Array.from(invoiceDocument.images).filter(image => !image.complete);
+      if (pendingImages.length > 0) {
+        await Promise.race([
+          Promise.all(pendingImages.map(image => new Promise<void>(resolve => {
+            image.addEventListener('load', () => resolve(), { once: true });
+            image.addEventListener('error', () => resolve(), { once: true });
+          }))),
+          new Promise<void>(resolve => window.setTimeout(resolve, 3000)),
+        ]);
+      }
+
+      const iframeInvoiceElement = invoiceDocument.querySelector<HTMLElement>('.page');
+      if (!iframeInvoiceElement) throw new Error('Invoice document could not be created.');
+
+      const renderHost = document.createElement('div');
+      renderHost.style.position = 'fixed';
+      renderHost.style.left = '-10000px';
+      renderHost.style.top = '0';
+      renderHost.style.width = '794px';
+      renderHost.style.background = '#ffffff';
+      renderHost.setAttribute('aria-hidden', 'true');
+      const invoiceElement = cloneWithComputedStyles(iframeInvoiceElement);
+      renderHost.appendChild(invoiceElement);
+      document.body.appendChild(renderHost);
+
+      const filename = `topmax-${receiptNumber}.pdf`;
+      let blob: Blob;
+      try {
+        blob = await html2pdf()
+          .set({
+            margin: 0,
+            filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              logging: false,
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          })
+          .from(invoiceElement)
+          .outputPdf('blob') as Blob;
+      } finally {
+        renderHost.remove();
+      }
+      const file = new File([blob], filename, { type: 'application/pdf' });
+
+      if (
+        (action === 'send' || action === 'whatsapp') &&
+        navigator.share &&
+        navigator.canShare?.({ files: [file] })
+      ) {
+        await navigator.share({
+          title: labels.receipt,
+          text: action === 'whatsapp'
+            ? buildWhatsAppMessage()
+            : `${labels.receipt} ${labels.number} ${receiptNumber}`,
+          files: [file],
+        });
+        whatsappWindow?.close();
+      } else {
+        const objectUrl = URL.createObjectURL(blob);
+        if (action === 'view' && previewWindow) {
+          previewWindow.location.href = objectUrl;
+        } else {
+          const link = document.createElement('a');
+          link.href = objectUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        }
+        if (action === 'whatsapp') {
+          const message = buildWhatsAppMessage();
+          const whatsappUrl = `https://wa.me/${COMPANY_PHONE}?text=${encodeURIComponent(
+            `${message}\n\nPDF downloaded. Please attach the downloaded invoice to this chat.`
+          )}`;
+          if (whatsappWindow) {
+            whatsappWindow.location.href = whatsappUrl;
+          } else {
+            window.location.href = whatsappUrl;
+          }
+        }
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      }
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      previewWindow?.close();
+      whatsappWindow?.close();
+    } finally {
+      iframe.remove();
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -483,14 +619,52 @@ const Basket: React.FC<BasketProps> = ({
                 </div>
               </div>
 
-              <button onClick={handleCreatePdf} className="mb-3 w-full bg-white py-4 rounded-2xl font-black text-base text-slate-900 transition-all hover:bg-slate-100 active:scale-95 flex items-center justify-center gap-3">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" />
-                </svg>
-                {user && !user.isGuest ? labels.download : labels.signIn}
-              </button>
+              <div className="relative mb-3">
+                <button
+                  onClick={() => {
+                    if (!user || user.isGuest) {
+                      onRequestLogin();
+                      return;
+                    }
+                    setIsPdfMenuOpen(open => !open);
+                  }}
+                  disabled={isGeneratingPdf}
+                  className="w-full bg-white py-4 rounded-2xl font-black text-base text-slate-900 transition-all hover:bg-slate-100 active:scale-95 disabled:cursor-wait disabled:opacity-70 flex items-center justify-center gap-3"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" />
+                  </svg>
+                  {isGeneratingPdf
+                    ? labels.preparing
+                    : user && !user.isGuest
+                      ? labels.pdfOptions
+                      : labels.signIn}
+                </button>
 
-              <button onClick={handleConfirmPurchase} className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95">
+                {isPdfMenuOpen && !isGeneratingPdf && (
+                  <div className="absolute bottom-full left-0 z-20 mb-2 grid w-full grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+                    {([
+                      ['view', labels.view],
+                      ['send', labels.send],
+                      ['download', labels.download],
+                    ] as [PdfAction, string][]).map(([action, label]) => (
+                      <button
+                        key={action}
+                        onClick={() => handleCreatePdf(action)}
+                        className="rounded-xl bg-slate-50 px-2 py-3 text-xs font-black text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => handleCreatePdf('whatsapp')}
+                disabled={isGeneratingPdf}
+                className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black text-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95 disabled:cursor-wait disabled:opacity-70"
+              >
                 {t.confirmOrder[language]}
               </button>
 
