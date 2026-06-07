@@ -949,7 +949,7 @@ const App: React.FC = () => {
             </section>
 
             {isProductsLoading ? (
-              <div className="mb-20 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="mb-20 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <ProductCardSkeleton key={i} />
                 ))}
@@ -965,7 +965,7 @@ const App: React.FC = () => {
                 </button>
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className="mb-20 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="mb-20 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredProducts.map(product => (
                   <ProductCard
                     key={product.id}

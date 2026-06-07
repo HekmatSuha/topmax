@@ -68,7 +68,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         setActiveImageIndex(0);
       }}
     >
-      <div className="relative aspect-square overflow-hidden bg-slate-100 sm:h-64 sm:aspect-auto cursor-pointer" onClick={() => onInquire(product)}>
+      <div className="relative aspect-square overflow-hidden bg-slate-100 sm:h-44 sm:aspect-auto cursor-pointer" onClick={() => onInquire(product)}>
         {slideshowImages.map((imageUrl, index) => (
           <img
             key={`${imageUrl}-${index}`}
@@ -146,12 +146,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="mb-2 line-clamp-2 min-h-[2.35rem] text-[15px] font-black leading-tight text-slate-950 sm:min-h-[2.5rem] sm:text-base">
+      <div className="flex flex-1 flex-col p-2.5 sm:p-3">
+        <h3 className="mb-1 line-clamp-2 text-[12px] font-black leading-tight text-slate-950 sm:text-[13px]">
           {productName}
         </h3>
 
-        <div className="mb-3 flex min-h-6 flex-wrap items-center gap-1.5">
+        <div className="mb-1.5 flex flex-wrap items-center gap-1">
           <span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
             {product.itemCode}
           </span>
@@ -162,8 +162,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
           ) : null}
         </div>
 
-        <div className="mt-auto space-y-3 border-t border-slate-100 pt-3">
-          <div className="min-h-6">
+        <div className="mt-auto space-y-1.5 border-t border-slate-100 pt-2">
+          <div>
             {hasWholesalePrice ? (
               <>
                 <span className="break-words text-sm font-black text-emerald-600 sm:text-base">
@@ -196,7 +196,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               type="button"
               onClick={(e) => { e.stopPropagation(); onAddToBasket(product); }}
               disabled={outOfStock}
-              className="flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-slate-950 px-3 text-[11px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:text-xs"
+              className="flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-slate-950 px-2 text-[10px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:text-[11px]"
             >
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
