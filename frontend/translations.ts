@@ -113,5 +113,6 @@ export const translations: Record<string, Record<Language, string>> = {
   wholesaleCodePlaceholder: { en: 'Enter code...', ru: 'Введите код...', kk: 'Кодты енгізіңіз...' },
   wholesaleCodeApply: { en: 'Apply', ru: 'Применить', kk: 'Қолдану' },
   wholesaleCodeSuccess: { en: 'Wholesale access unlocked!', ru: 'Оптовый доступ открыт!', kk: 'Көтерме қатынас ашылды!' },
-  wholesaleCodeError: { en: 'Invalid code', ru: 'Неверный код', kk: 'Код қате' }
+  wholesaleCodeError: { en: 'Invalid code', ru: 'Неверный код', kk: 'Код қате' },
+  wholesaleCodeGuestHint: { en: 'Sign in to use a wholesale code', ru: 'Войдите, чтобы ввести код', kk: 'Кодты енгізу үшін кіріңіз' }
 };
