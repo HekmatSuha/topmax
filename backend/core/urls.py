@@ -8,7 +8,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.views.generic import TemplateView
-from .auth_views import me, signup, signin, signout
+from .auth_views import me, signup, signin, signout, redeem_wholesale_code
 from catalog.views import (
     categories_api,
     products_api,
@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/auth/signin/", signin),
     path("api/auth/me/", me),
     path("api/auth/signout/", signout),
+    path("api/auth/wholesale-code/", redeem_wholesale_code),
     path("api/categories/", categories_api),
     path("api/products/", products_api),
     path("api/products/<int:pk>/", product_detail_api),

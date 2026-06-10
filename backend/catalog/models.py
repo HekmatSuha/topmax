@@ -105,6 +105,7 @@ class ProductImage(models.Model):
 
 class SiteSettings(models.Model):
     show_normal_prices = models.BooleanField(default=False, help_text="Show normal prices for all products in frontend.")
+    wholesale_code = models.CharField(max_length=64, blank=True, help_text="Secret code users can enter to unlock wholesale prices.")
 
     class Meta:
         verbose_name = "Site Setting"

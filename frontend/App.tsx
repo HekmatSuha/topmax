@@ -386,6 +386,25 @@ const App: React.FC = () => {
     }
   };
 
+  const handleRedeemWholesaleCode = async (code: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/auth/wholesale-code/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { success: false, error: data.error };
+      setUser(data.user);
+      localStorage.setItem('topmax_user', JSON.stringify(data.user));
+      loadProducts();
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Network error.' };
+    }
+  };
+
   const addToast = (message: string, type: ToastMessage['type'] = 'success', action?: ToastMessage['action']) => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, message, type, action }]);
@@ -1033,6 +1052,7 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         onOpenAuth={() => setShowAuth(true)}
         backendStatus={backendStatus}
+        onRedeemWholesaleCode={handleRedeemWholesaleCode}
       />
       
       <main className="flex-grow pb-16 md:pb-0">

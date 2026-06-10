@@ -108,5 +108,10 @@ export const translations: Record<string, Record<Language, string>> = {
   noProductsHint: { en: 'Try adjusting your search or clearing the filters.', ru: 'Попробуйте изменить запрос или очистить фильтры.', kk: 'Сұрауды өзгертіп немесе сүзгілерді тазартып көріңіз.' },
   filterDone: { en: 'Done', ru: 'Готово', kk: 'Дайын' },
   filterByCategory: { en: 'Filter by Category', ru: 'Фильтр по категории', kk: 'Санат бойынша сүзу' },
-  tryAgain: { en: 'Try Again', ru: 'Попробовать снова', kk: 'Қайталап көру' }
+  tryAgain: { en: 'Try Again', ru: 'Попробовать снова', kk: 'Қайталап көру' },
+  wholesaleCodeLabel: { en: 'Wholesale Access', ru: 'Оптовый доступ', kk: 'Көтерме қатынасы' },
+  wholesaleCodePlaceholder: { en: 'Enter code...', ru: 'Введите код...', kk: 'Кодты енгізіңіз...' },
+  wholesaleCodeApply: { en: 'Apply', ru: 'Применить', kk: 'Қолдану' },
+  wholesaleCodeSuccess: { en: 'Wholesale access unlocked!', ru: 'Оптовый доступ открыт!', kk: 'Көтерме қатынас ашылды!' },
+  wholesaleCodeError: { en: 'Invalid code', ru: 'Неверный код', kk: 'Код қате' }
 };

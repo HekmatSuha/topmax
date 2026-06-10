@@ -13,6 +13,7 @@ interface NavbarProps {
   onLogout: () => void;
   onOpenAuth: () => void;
   backendStatus: string;
+  onRedeemWholesaleCode: (code: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const LogoMark: React.FC<{ className?: string }> = ({ className }) => (
@@ -23,10 +24,13 @@ const LogoMark: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, language, onLanguageChange, user, onLogout, onOpenAuth, backendStatus }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, language, onLanguageChange, user, onLogout, onOpenAuth, backendStatus, onRedeemWholesaleCode }) => {
   const t = translations;
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [wholesaleCode, setWholesaleCode] = useState('');
+  const [wholesaleStatus, setWholesaleStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [wholesaleError, setWholesaleError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const languageDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +64,21 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleWholesaleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!wholesaleCode.trim()) return;
+    setWholesaleStatus('loading');
+    setWholesaleError('');
+    const result = await onRedeemWholesaleCode(wholesaleCode.trim());
+    if (result.success) {
+      setWholesaleStatus('success');
+      setWholesaleCode('');
+    } else {
+      setWholesaleStatus('error');
+      setWholesaleError(result.error || t.wholesaleCodeError[language]);
+    }
+  };
 
   return (
     <nav className="bg-white border-b-2 border-gray-100 sticky top-0 z-50">
@@ -176,7 +195,37 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
                         </span>
                       )}
                     </div>
-                    <button 
+
+                    {!user.isWholesale && (
+                      <div className="px-4 py-3 border-b border-gray-50">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.wholesaleCodeLabel[language]}</p>
+                        {wholesaleStatus === 'success' ? (
+                          <p className="text-xs font-bold text-emerald-600">{t.wholesaleCodeSuccess[language]}</p>
+                        ) : (
+                          <form onSubmit={handleWholesaleSubmit} className="flex gap-1.5">
+                            <input
+                              type="text"
+                              value={wholesaleCode}
+                              onChange={e => { setWholesaleCode(e.target.value); setWholesaleStatus('idle'); }}
+                              placeholder={t.wholesaleCodePlaceholder[language]}
+                              className="flex-1 min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                            />
+                            <button
+                              type="submit"
+                              disabled={wholesaleStatus === 'loading' || !wholesaleCode.trim()}
+                              className="shrink-0 rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-black text-white hover:bg-blue-600 transition-colors disabled:opacity-40"
+                            >
+                              {wholesaleStatus === 'loading' ? '...' : t.wholesaleCodeApply[language]}
+                            </button>
+                          </form>
+                        )}
+                        {wholesaleStatus === 'error' && (
+                          <p className="mt-1.5 text-[11px] font-bold text-red-500">{wholesaleError}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <button
                       onClick={() => {
                         onLogout();
                         setIsProfileOpen(false);

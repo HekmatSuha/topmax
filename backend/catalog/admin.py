@@ -209,8 +209,8 @@ class WholesaleCustomerAdmin(admin.ModelAdmin):
 
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(admin.ModelAdmin):
-    list_display = ("show_normal_prices",)
-    fields = ("show_normal_prices",)
+    list_display = ("show_normal_prices", "wholesale_code")
+    fields = ("show_normal_prices", "wholesale_code")
 
     def has_add_permission(self, request):
         # Only allow one instance

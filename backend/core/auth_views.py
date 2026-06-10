@@ -92,3 +92,29 @@ def signin(request):
 def signout(request):
     logout(request)
     return JsonResponse({"message": "Signed out successfully."})
+
+
+@csrf_exempt
+@require_POST
+def redeem_wholesale_code(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required."}, status=401)
+
+    data = _parse_json(request)
+    if data is None:
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+    code = (data.get("code") or "").strip()
+    if not code:
+        return JsonResponse({"error": "Code is required."}, status=400)
+
+    from catalog.models import SiteSettings
+    site = SiteSettings.objects.first()
+    if not site or not site.wholesale_code or code != site.wholesale_code:
+        return JsonResponse({"error": "Invalid code."}, status=400)
+
+    profile = request.user.wholesale_profile
+    profile.is_approved = True
+    profile.save()
+
+    return JsonResponse({"user": _user_payload(request.user)})
