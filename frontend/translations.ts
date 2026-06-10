@@ -114,5 +114,8 @@ export const translations: Record<string, Record<Language, string>> = {
   wholesaleCodeApply: { en: 'Apply', ru: 'Применить', kk: 'Қолдану' },
   wholesaleCodeSuccess: { en: 'Wholesale access unlocked!', ru: 'Оптовый доступ открыт!', kk: 'Көтерме қатынас ашылды!' },
   wholesaleCodeError: { en: 'Invalid code', ru: 'Неверный код', kk: 'Код қате' },
-  wholesaleCodeGuestHint: { en: 'Sign in to use a wholesale code', ru: 'Войдите, чтобы ввести код', kk: 'Кодты енгізу үшін кіріңіз' }
+  wholesaleCodeGuestHint: { en: 'Sign in to use a wholesale code', ru: 'Войдите, чтобы ввести код', kk: 'Кодты енгізу үшін кіріңіз' },
+  authMethodEmail: { en: 'Email', ru: 'Почта', kk: 'Пошта' },
+  authMethodPhone: { en: 'Phone', ru: 'Телефон', kk: 'Телефон' },
+  phonePlaceholder: { en: 'Phone number', ru: 'Номер телефона', kk: 'Телефон нөмірі' }
 };

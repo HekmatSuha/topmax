@@ -39,6 +39,12 @@ def me(request):
     return JsonResponse({"user": _user_payload(request.user)})
 
 
+def _normalize_phone(phone):
+    """Strip spaces/dashes, ensure it starts with +."""
+    phone = "".join(c for c in phone if c.isdigit() or c == "+")
+    return phone
+
+
 @csrf_exempt
 @require_POST
 def signup(request):
@@ -48,16 +54,28 @@ def signup(request):
 
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
+    phone = _normalize_phone(data.get("phone") or "")
     password = data.get("password") or ""
 
-    if not name or not email or not password:
-        return JsonResponse({"error": "Name, email, and password are required."}, status=400)
+    if not name or not password:
+        return JsonResponse({"error": "Name and password are required."}, status=400)
 
-    if User.objects.filter(email__iexact=email).exists():
-        return JsonResponse({"error": "An account with this email already exists."}, status=409)
+    if not email and not phone:
+        return JsonResponse({"error": "Email or phone number is required."}, status=400)
+
+    if email:
+        if User.objects.filter(email__iexact=email).exists():
+            return JsonResponse({"error": "An account with this email already exists."}, status=409)
+        username = email
+    else:
+        if len(phone) < 7:
+            return JsonResponse({"error": "Enter a valid phone number."}, status=400)
+        if User.objects.filter(username=phone).exists():
+            return JsonResponse({"error": "An account with this phone number already exists."}, status=409)
+        username = phone
 
     user = User.objects.create_user(
-        username=email,
+        username=username,
         email=email,
         password=password,
         first_name=name,
@@ -74,14 +92,16 @@ def signin(request):
         return JsonResponse({"error": "Invalid JSON body."}, status=400)
 
     email = (data.get("email") or "").strip().lower()
+    phone = _normalize_phone(data.get("phone") or "")
     password = data.get("password") or ""
 
-    if not email or not password:
-        return JsonResponse({"error": "Email and password are required."}, status=400)
+    if not password or (not email and not phone):
+        return JsonResponse({"error": "Credentials are required."}, status=400)
 
-    user = authenticate(request, username=email, password=password)
+    username = email if email else phone
+    user = authenticate(request, username=username, password=password)
     if user is None:
-        return JsonResponse({"error": "Invalid email or password."}, status=401)
+        return JsonResponse({"error": "Invalid credentials."}, status=401)
 
     login(request, user)
     return JsonResponse({"user": _user_payload(user)})
