@@ -97,9 +97,6 @@ def signout(request):
 @csrf_exempt
 @require_POST
 def redeem_wholesale_code(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({"error": "Authentication required."}, status=401)
-
     data = _parse_json(request)
     if data is None:
         return JsonResponse({"error": "Invalid JSON body."}, status=400)
@@ -113,8 +110,13 @@ def redeem_wholesale_code(request):
     if not site or not site.wholesale_code or code != site.wholesale_code:
         return JsonResponse({"error": "Invalid code."}, status=400)
 
-    profile = request.user.wholesale_profile
-    profile.is_approved = True
-    profile.save()
+    if request.user.is_authenticated:
+        profile = request.user.wholesale_profile
+        profile.is_approved = True
+        profile.save()
+        return JsonResponse({"user": _user_payload(request.user)})
 
-    return JsonResponse({"user": _user_payload(request.user)})
+    # Guest: store wholesale access in the session for this visit
+    request.session['wholesale_verified'] = True
+    request.session.modified = True
+    return JsonResponse({"user": {"name": "Guest", "email": "", "isGuest": True, "isWholesale": True}})

@@ -34,8 +34,13 @@ def _image_payload(img):
     }
 
 
-def _can_view_wholesale_prices(user):
-    if not user.is_authenticated:
+def _can_view_wholesale_prices(request):
+    if request is None:
+        return False
+    if request.session.get('wholesale_verified', False):
+        return True
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
         return False
     try:
         return bool(user.wholesale_profile.is_approved)
@@ -43,9 +48,9 @@ def _can_view_wholesale_prices(user):
         return False
 
 
-def _product_payload(product, user=None):
+def _product_payload(product, request=None):
     uploaded_images = list(product.images.all())
-    can_view_wholesale = _can_view_wholesale_prices(user)
+    can_view_wholesale = _can_view_wholesale_prices(request)
     show_normal_prices = SiteSettings.objects.first().show_normal_prices if SiteSettings.objects.exists() else False
 
     # Legacy URLs from the JSON field
@@ -163,7 +168,7 @@ def products_api(request):
     if request.method == "GET":
         products = Product.objects.select_related("category").prefetch_related("images").all()
         return JsonResponse(
-            {"products": [_product_payload(p, request.user) for p in products]}
+            {"products": [_product_payload(p, request) for p in products]}
         )
 
     # --- CREATE ---
@@ -205,7 +210,7 @@ def products_api(request):
     except Exception as exc:
         return JsonResponse({"error": str(exc)}, status=400)
 
-    return JsonResponse({"product": _product_payload(product, request.user)}, status=201)
+    return JsonResponse({"product": _product_payload(product, request)}, status=201)
 
 
 # ---------------------------------------------------------------------------
@@ -222,7 +227,7 @@ def product_detail_api(request, pk):
 
     # --- GET single product ---
     if request.method == "GET":
-        return JsonResponse({"product": _product_payload(product, request.user)})
+        return JsonResponse({"product": _product_payload(product, request)})
 
     # --- DELETE ---
     if request.method == "DELETE":
@@ -267,7 +272,7 @@ def product_detail_api(request, pk):
         return JsonResponse({"error": str(exc)}, status=400)
 
     product.refresh_from_db()
-    return JsonResponse({"product": _product_payload(product, request.user)})
+    return JsonResponse({"product": _product_payload(product, request)})
 
 
 # ---------------------------------------------------------------------------

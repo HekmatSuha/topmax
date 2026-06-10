@@ -199,9 +199,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
                     {!user.isWholesale && (
                       <div className="px-4 py-3 border-b border-gray-50">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.wholesaleCodeLabel[language]}</p>
-                        {user.isGuest ? (
-                          <p className="text-xs font-bold text-slate-400">{t.wholesaleCodeGuestHint[language]}</p>
-                        ) : wholesaleStatus === 'success' ? (
+                        {wholesaleStatus === 'success' ? (
                           <p className="text-xs font-bold text-emerald-600">{t.wholesaleCodeSuccess[language]}</p>
                         ) : (
                           <form onSubmit={handleWholesaleSubmit} className="flex gap-1.5">
