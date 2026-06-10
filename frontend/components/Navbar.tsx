@@ -182,7 +182,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
 
                 {/* Dropdown Menu */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-in fade-in zoom-in slide-in-from-top-2 duration-200 overflow-hidden">
+                  <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-in fade-in zoom-in slide-in-from-top-2 duration-200 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-50 mb-1">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Account</p>
                       <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
