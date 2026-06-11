@@ -22,7 +22,7 @@ const getDefaultPrice = (item: BasketItem) =>
   hasWholesalePrice(item) ? getWholesalePrice(item) : Number(item.price || 0);
 const formatKzt = (price: number) => `${price.toLocaleString('ru-RU')} KZT`;
 const formatUsd = (price: number) =>
-  `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `$${price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 const escapeHtml = (value: unknown) =>
   String(value ?? '')
     .replace(/&/g, '&amp;')

@@ -39,7 +39,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const formatUsdPrice = (price: string) =>
-    `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const formatKztPrice = (price: string | number) =>
     `${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} KZT`;
 
@@ -160,37 +160,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {product.dimensions}
             </span>
           ) : null}
+          {hasWholesalePrice ? (
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-sm font-black text-emerald-600 sm:text-base">
+                {formatUsdPrice(product.wholesalePriceUsd!)}
+              </span>
+              {product.price != null ? (
+                <span className="text-[10px] font-bold text-slate-400 line-through">
+                  {formatKztPrice(product.price.toString())}
+                </span>
+              ) : null}
+            </span>
+          ) : product.price != null ? (
+            <span className="text-sm font-black text-slate-950 sm:text-base">
+              {formatKztPrice(product.price.toString())}
+            </span>
+          ) : (
+            <span className="inline-flex rounded-md bg-blue-50 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-blue-700">
+              {translations.priceOnRequestShort[language]}
+            </span>
+          )}
         </div>
 
-        <div className="mt-auto space-y-1.5 border-t border-slate-100 pt-2">
-          <div>
-            {hasWholesalePrice ? (
-              <>
-                <span className="break-words text-sm font-black text-emerald-600 sm:text-base">
-                  {formatUsdPrice(product.wholesalePriceUsd!)}
-                </span>
-                {product.price != null ? (
-                  <div className="mt-1.5 text-xs text-slate-500">
-                    <span className="mb-0.5 block text-[9px] font-black uppercase tracking-widest text-slate-400">
-                      {translations.normalPrice[language]}
-                    </span>
-                    <span className="font-bold text-slate-700 line-through">
-                      {formatKztPrice(product.price.toString())}
-                    </span>
-                  </div>
-                ) : null}
-              </>
-            ) : product.price != null ? (
-              <span className="break-words text-sm font-black text-slate-950 sm:text-base">
-                {formatKztPrice(product.price.toString())}
-              </span>
-            ) : (
-              <span className="inline-flex rounded-md bg-blue-50 px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wide text-blue-700">
-                {translations.priceOnRequestShort[language]}
-              </span>
-            )}
-          </div>
-
+        <div className="mt-auto border-t border-slate-100 pt-2">
           {onAddToBasket ? (
             <button
               type="button"

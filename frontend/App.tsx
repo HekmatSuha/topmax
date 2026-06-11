@@ -113,7 +113,7 @@ const App: React.FC = () => {
   const t = translations;
 
   const formatUsdPrice = (price: string | number) =>
-    `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const formatKztPrice = (price: string | number) =>
     `${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₸`;
   const hasWholesalePrice = (product: Product) => Boolean(product.isWholesaleVisible && product.wholesalePriceUsd);
@@ -915,14 +915,9 @@ const App: React.FC = () => {
             {!isProductsLoading && !productsError && (
               <section className="mb-8 sm:mb-10" aria-label={t.filterByCategory[language]}>
                 <div className="mb-4 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
-                      TOP MAX
-                    </p>
-                    <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
-                      {t.filterByCategory[language]}
-                    </h2>
-                  </div>
+                  <h2 className="text-lg font-black text-slate-950 sm:text-2xl">
+                    {t.filterByCategory[language]}
+                  </h2>
                   <button
                     type="button"
                     onClick={() => handleCategorySelect('All')}
@@ -980,14 +975,9 @@ const App: React.FC = () => {
 
             <section className="mb-7 mt-4 border-t border-slate-200 pt-7 sm:mb-9 sm:mt-6 sm:pt-9">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
-                    TOP MAX
-                  </p>
-                  <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
-                    {filter === 'All' ? t.all[language] : getCategoryLabel(filter)}
-                  </h2>
-                </div>
+                <h2 className="text-lg font-black text-slate-950 sm:text-2xl">
+                  {filter === 'All' ? t.all[language] : getCategoryLabel(filter)}
+                </h2>
                 {!isProductsLoading && !productsError && (
                   <span className="inline-flex w-fit rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">
                     {filteredProducts.length}
@@ -1056,8 +1046,7 @@ const App: React.FC = () => {
         return (
           <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
             <div className="mb-6 sm:mb-8">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">TOP MAX</p>
-              <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
+              <h2 className="text-lg font-black text-slate-950 sm:text-2xl">
                 {t.favoritesTitle[language]}
               </h2>
             </div>

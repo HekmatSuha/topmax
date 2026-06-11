@@ -51,8 +51,7 @@ const Profile: React.FC<ProfileProps> = ({
   return (
     <div className="mx-auto max-w-2xl px-3 py-6 sm:px-6 sm:py-10">
       <div className="mb-6 sm:mb-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">TOP MAX</p>
-        <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
+        <h2 className="text-lg font-black text-slate-950 sm:text-2xl">
           {t.profileTitle[language]}
         </h2>
       </div>
