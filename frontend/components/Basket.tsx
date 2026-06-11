@@ -506,6 +506,12 @@ const Basket: React.FC<BasketProps> = ({
               useCORS: true,
               backgroundColor: '#ffffff',
               logging: false,
+              // The invoice carries all styles inline; drop page stylesheets from
+              // html2canvas's clone so it never parses Tailwind v4 oklch() colors,
+              // which html2canvas 1.4 cannot handle.
+              onclone: (clonedDoc: Document) => {
+                clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(node => node.remove());
+              },
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           })
@@ -584,46 +590,51 @@ const Basket: React.FC<BasketProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8 space-y-6">
-            {items.map((item, idx) => {
-              const unitPrice = quotePrices[getItemKey(item)] ?? getDefaultPrice(item);
-              return (
-                <div key={`${item.id}-${item.selectedColor}-${idx}`} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center gap-6 group relative">
-                  <div className="w-32 h-32 bg-gray-50 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
-                    <img src={item.imageUrls[0]} alt="" className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500" />
-                  </div>
-                  <div className="flex-grow text-center sm:text-left">
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
-                      <span className="bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
-                        {item.categoryName?.[language] || item.categoryName?.en || t[item.category]?.[language] || item.category}
-                      </span>
-                      {item.selectedColor && (
-                        <span className="bg-slate-900 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full">
-                          {t[item.selectedColor]?.[language] || item.selectedColor}
-                        </span>
-                      )}
+          <div className="lg:col-span-8">
+            <div className="divide-y divide-gray-100 overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+              {items.map((item, idx) => {
+                const unitPrice = quotePrices[getItemKey(item)] ?? getDefaultPrice(item);
+                return (
+                  <div key={`${item.id}-${item.selectedColor}-${idx}`} className="flex items-start gap-3 p-3 sm:gap-4 sm:p-4">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-50 p-1.5">
+                      <img src={item.imageUrls[0]} alt="" className="h-full w-full object-contain mix-blend-multiply" />
                     </div>
-                    <h3 className="text-xl font-black text-slate-900 mb-1">{item.name[language]}</h3>
-                    <p className="text-xs font-bold text-slate-400">{item.itemCode}</p>
-                    <div className="flex items-center justify-center sm:justify-start gap-6 mt-4">
-                      {unitPrice > 0 ? (
-                        <span className="text-2xl font-serif font-black text-emerald-500">{formatQuotePrice(unitPrice * item.quantity)}</span>
-                      ) : (
-                        <span className="max-w-56 text-sm font-black uppercase leading-snug tracking-wide text-blue-600">{t.priceOnRequest[language]}</span>
-                      )}
-                      <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-gray-100">
-                        <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, Math.max(1, item.quantity - 1))} className="w-10 h-10 flex items-center justify-center text-slate-900 font-black text-xl hover:bg-white rounded-lg">-</button>
-                        <span className="w-10 text-center font-black text-lg text-slate-900">{item.quantity}</span>
-                        <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, item.quantity + 1)} className="w-10 h-10 flex items-center justify-center text-slate-900 font-black text-xl hover:bg-white rounded-lg">+</button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-bold text-slate-900 sm:text-base">{item.name[language]}</h3>
+                          <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            {item.itemCode}
+                            {item.selectedColor ? ` · ${t[item.selectedColor]?.[language] || item.selectedColor}` : ''}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => onRemove(item.id, item.selectedColor)}
+                          aria-label="Remove item"
+                          className="shrink-0 p-1 text-slate-300 transition-colors hover:text-red-500"
+                        >
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        {unitPrice > 0 ? (
+                          <span className={`text-base font-black sm:text-lg ${hasWholesalePrice(item) ? 'text-emerald-600' : 'text-slate-900'}`}>
+                            {formatQuotePrice(unitPrice * item.quantity)}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-black uppercase tracking-wide text-blue-600">{t.priceOnRequestShort[language]}</span>
+                        )}
+                        <div className="flex items-center overflow-hidden rounded-lg border border-gray-200 bg-slate-50">
+                          <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, Math.max(1, item.quantity - 1))} className="flex h-8 w-8 items-center justify-center font-black text-slate-700 transition-colors hover:bg-white">−</button>
+                          <span className="w-8 text-center text-sm font-black text-slate-900">{item.quantity}</span>
+                          <button onClick={() => onUpdateQuantity(item.id, item.selectedColor, item.quantity + 1)} className="flex h-8 w-8 items-center justify-center font-black text-slate-700 transition-colors hover:bg-white">+</button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => onRemove(item.id, item.selectedColor)} className="sm:absolute top-6 right-6 text-slate-200 hover:text-red-500 transition-colors p-2">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           <div className="lg:col-span-4">
