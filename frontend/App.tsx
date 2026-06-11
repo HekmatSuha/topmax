@@ -711,8 +711,26 @@ const App: React.FC = () => {
       });
   }, [products, categories]);
   const searchTokens = useMemo(() => tokenizeSearchQuery(searchQuery), [searchQuery]);
+  // The "all items" feed is shuffled once per visit so low-ranked products get
+  // seen too; in-stock items always come before out-of-stock ones. Category
+  // views and search results keep their curated/relevance order.
+  const shuffledProducts = useMemo(() => {
+    const shuffle = (list: Product[]) => {
+      const result = [...list];
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    };
+    return [
+      ...shuffle(products.filter(product => product.inStock !== false)),
+      ...shuffle(products.filter(product => product.inStock === false)),
+    ];
+  }, [products]);
   const filteredProducts = useMemo(() => {
-    return products
+    const baseList = filter === 'All' ? shuffledProducts : products;
+    return baseList
       .filter(product => filter === 'All' || product.category === filter)
       .map((product, index) => ({
         product,
@@ -725,7 +743,7 @@ const App: React.FC = () => {
         return b.score - a.score || a.index - b.index;
       })
       .map(result => result.product);
-  }, [products, filter, searchTokens]);
+  }, [products, shuffledProducts, filter, searchTokens]);
   const hasActiveSearch = searchTokens.length > 0 || Boolean(visualSearch);
   const searchResults = useMemo(() => {
     if (searchTokens.length === 0) return [];
