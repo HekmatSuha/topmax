@@ -57,9 +57,7 @@ const cloneWithComputedStyles = (source: HTMLElement) => {
 
 const documentLabels: Record<Language, Record<string, string>> = {
   en: {
-    warehouse: 'Warehouse No. 1 Almaty',
-    address: 'Almaty, 93A Ryskulov Avenue',
-    receipt: 'Sales receipt',
+    receipt: 'Client order',
     from: 'dated',
     number: 'No.',
     article: 'Article',
@@ -87,9 +85,7 @@ const documentLabels: Record<Language, Record<string, string>> = {
     orderItems: 'Items',
   },
   ru: {
-    warehouse: 'Склад №1 Алматы',
-    address: 'Алматы, Проспект Турара Рыскулова, 93а',
-    receipt: 'Товарный чек',
+    receipt: 'Заказ клиента',
     from: 'от',
     number: '№',
     article: 'Артикул',
@@ -117,9 +113,7 @@ const documentLabels: Record<Language, Record<string, string>> = {
     orderItems: 'Товары',
   },
   kk: {
-    warehouse: '№1 қойма, Алматы',
-    address: 'Алматы, Тұрар Рысқұлов даңғылы, 93а',
-    receipt: 'Тауарлық чек',
+    receipt: 'Клиент тапсырысы',
     from: 'күні',
     number: '№',
     article: 'Артикул',
@@ -354,16 +348,11 @@ const Basket: React.FC<BasketProps> = ({
             .page { min-height: 297mm; padding: 36px 40px; }
             .header {
               display: flex;
-              justify-content: space-between;
-              align-items: center;
-              gap: 32px;
+              justify-content: center;
               padding: 0 0 18px;
               color: #111827;
               border-bottom: 2px solid #111827;
             }
-            .company-name { margin-bottom: 6px; font-size: 24px; font-weight: 900; letter-spacing: .04em; }
-            .warehouse { color: #6b7280; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-            .address { margin-top: 12px; color: #6b7280; font-size: 11px; }
             .logo { width: 130px; text-align: center; color: #111827; }
             .rings { display: flex; justify-content: center; height: 44px; }
             .ring { width: 43px; height: 43px; margin-left: -12px; border: 4px solid currentColor; border-radius: 50%; }
@@ -372,7 +361,6 @@ const Basket: React.FC<BasketProps> = ({
             .max { padding-left: 6px; font-size: 12px; letter-spacing: 7px; }
             .content { padding: 24px 0 26px; }
             .invoice-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
-            .invoice-label { margin-bottom: 6px; color: #6b7280; font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
             h1 { margin: 0; color: #111827; font-size: 26px; line-height: 1.15; }
             .invoice-meta { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 8px; min-width: 280px; }
             .meta-card { padding: 10px 12px; border: 1px solid #d1d5db; }
@@ -407,7 +395,7 @@ const Basket: React.FC<BasketProps> = ({
             .grand-total { padding-top: 15px; padding-bottom: 15px; border-top: 2px solid #111827; background: #f3f4f6; }
             .grand-total .summary-label { color: #111827; }
             .grand-total .summary-value { font-size: 20px; font-weight: 900; }
-            .footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 28px; padding-top: 14px; border-top: 1px solid #d1d5db; color: #9ca3af; font-size: 9px; }
+            .footer { display: flex; justify-content: center; margin-top: 28px; padding-top: 14px; border-top: 1px solid #d1d5db; color: #9ca3af; font-size: 9px; }
             .footer strong { color: #4b5563; }
             tr { break-inside: avoid; page-break-inside: avoid; }
           </style>
@@ -415,11 +403,6 @@ const Basket: React.FC<BasketProps> = ({
         <body>
           <div class="page">
             <div class="header">
-              <div class="company">
-                <div class="warehouse">${escapeHtml(labels.warehouse)}</div>
-                <div class="company-name">TOP MAX</div>
-                <div class="address">${escapeHtml(labels.address)}</div>
-              </div>
               <div class="logo">
                 <div class="rings"><span class="ring"></span><span class="ring"></span><span class="ring"></span></div>
                 <div class="top">TOP</div><div class="max">MAX</div>
@@ -428,7 +411,6 @@ const Basket: React.FC<BasketProps> = ({
             <div class="content">
               <div class="invoice-heading">
                 <div>
-                  <div class="invoice-label">TOP MAX DOCUMENT</div>
                   <h1>${escapeHtml(labels.receipt)}</h1>
                 </div>
                 <div class="invoice-meta">
@@ -477,7 +459,6 @@ const Basket: React.FC<BasketProps> = ({
               </div>
               <div class="footer">
                 <span><strong>TOP MAX</strong> · topmax.kz</span>
-                <span>${escapeHtml(labels.address)}</span>
               </div>
             </div>
           </div>
