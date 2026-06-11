@@ -106,11 +106,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {translations.outOfStock[language]}
             </div>
           )}
-          {hasWholesalePrice && (
-            <div className="rounded-full bg-slate-900 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:px-3 sm:text-[10px]">
-              Wholesale
-            </div>
-          )}
           {product.isNew && (
             <div className="rounded-full bg-emerald-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-md sm:px-3 sm:text-[10px]">
               {translations.new[language]}
