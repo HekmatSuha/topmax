@@ -7,6 +7,7 @@ import Contact from './components/Contact';
 import Basket from './components/Basket';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
+import Profile from './components/Profile';
 import { Product, ProductImage, BasketItem, Category, Language, User } from './types';
 import { translations } from './translations';
 
@@ -15,7 +16,7 @@ const PLACEHOLDER_IMAGE =
   'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"%3E%3Crect width="640" height="480" fill="%23f1f5f9"/%3E%3Cpath d="M160 336h320L384 224l-72 80-48-56-104 88Z" fill="%23cbd5e1"/%3E%3Ccircle cx="240" cy="176" r="40" fill="%23cbd5e1"/%3E%3C/svg%3E';
 
 type CategoryKey = string;
-type PageKey = 'home' | 'contact' | 'basket';
+type PageKey = 'home' | 'contact' | 'basket' | 'favorites' | 'profile';
 type VisualSearchResult = {
   label: string;
   confidence: number;
@@ -99,7 +100,10 @@ const App: React.FC = () => {
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
   const productsStartRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const imageSearchInputRef = useRef<HTMLInputElement>(null);
   const cameraSearchInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef(0);
@@ -310,7 +314,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 420);
+      const y = window.scrollY;
+      setShowScrollTop(y > 420);
+
+      const delta = y - lastScrollY.current;
+      if (y < 80) {
+        setIsHeaderVisible(true);
+      } else if (delta > 8) {
+        setIsHeaderVisible(false);
+      } else if (delta < -8) {
+        setIsHeaderVisible(true);
+      }
+      lastScrollY.current = y;
     };
 
     handleScroll();
@@ -420,10 +435,18 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (page: string) => {
-    if (page === 'home' || page === 'contact' || page === 'basket') {
+    if (page === 'home' || page === 'contact' || page === 'basket' || page === 'favorites' || page === 'profile') {
       setCurrentPage(page);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleSearchTab = () => {
+    setCurrentPage('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.setTimeout(() => {
+      searchInputRef.current?.focus({ preventScroll: true });
+    }, 350);
   };
 
   const handleCategorySelect = (key: CategoryKey) => {
@@ -688,6 +711,10 @@ const App: React.FC = () => {
       .map(result => result.product);
   }, [products, filter, searchTokens]);
   const hasActiveSearch = searchTokens.length > 0 || Boolean(visualSearch);
+  const likedProducts = useMemo(
+    () => products.filter(product => likedIds.includes(product.id)),
+    [products, likedIds]
+  );
 
   const addToBasket = (product: Product) => {
     setBasket(prev => {
@@ -748,6 +775,7 @@ const App: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
+                    ref={searchInputRef}
                     type="search"
                     placeholder={t.searchPlaceholder[language]}
                     value={searchQuery}
@@ -922,7 +950,7 @@ const App: React.FC = () => {
             )}
 
             {/* Mobile: filter trigger button */}
-            <div className="sticky top-20 z-40 -mx-3 mb-5 border-y border-gray-100 bg-gray-50/95 px-3 py-3 backdrop-blur md:hidden">
+            <div className={`sticky z-40 -mx-3 mb-5 border-y border-gray-100 bg-gray-50/95 px-3 py-3 backdrop-blur transition-[top] duration-300 md:hidden ${isHeaderVisible ? 'top-16' : 'top-0'}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   {renderCategoryIcon(filter, true)}
@@ -1023,6 +1051,58 @@ const App: React.FC = () => {
         );
       case 'contact':
         return <Contact language={language} />;
+      case 'favorites':
+        return (
+          <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
+            <div className="mb-6 sm:mb-8">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">TOP MAX</p>
+              <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
+                {t.favoritesTitle[language]}
+              </h2>
+            </div>
+            {likedProducts.length > 0 ? (
+              <div className="mb-20 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+                {likedProducts.map(product => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onInquire={handleSelectProduct}
+                    onAddToBasket={addToBasket}
+                    language={language}
+                    isLiked
+                    onToggleLike={() => toggleLike(product.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="mb-20 flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-24 text-center">
+                <svg className="mb-6 h-20 w-20 text-slate-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <p className="font-display mb-2 text-2xl font-bold text-slate-400">{t.noFavorites[language]}</p>
+                <p className="mb-6 text-sm text-slate-400">{t.noFavoritesHint[language]}</p>
+                <button
+                  onClick={() => handleNavigate('home')}
+                  className="rounded-xl bg-blue-50 px-6 py-2.5 text-sm font-black text-blue-600 transition-colors hover:bg-blue-100"
+                >
+                  {t.browseCatalog[language]}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      case 'profile':
+        return (
+          <Profile
+            language={language}
+            user={user}
+            onOpenAuth={() => setShowAuth(true)}
+            onLogout={handleLogout}
+            onLanguageChange={setLanguage}
+            onNavigate={handleNavigate}
+            onRedeemWholesaleCode={handleRedeemWholesaleCode}
+          />
+        );
       case 'basket':
         return (
           <Basket 
@@ -1042,10 +1122,11 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/50">
-      <Navbar 
-        onNavigate={handleNavigate} 
-        currentPage={currentPage} 
-        basketCount={basket.reduce((a, b) => a + b.quantity, 0)} 
+      <Navbar
+        onNavigate={handleNavigate}
+        currentPage={currentPage}
+        isVisible={isHeaderVisible}
+        basketCount={basket.reduce((a, b) => a + b.quantity, 0)}
         language={language}
         onLanguageChange={setLanguage}
         user={user}
@@ -1055,14 +1136,16 @@ const App: React.FC = () => {
         onRedeemWholesaleCode={handleRedeemWholesaleCode}
       />
       
-      <main className="flex-grow pb-16 md:pb-0">
+      <main className="flex-grow pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
         {renderPage()}
       </main>
 
       <BottomNav
         currentPage={currentPage}
         onNavigate={handleNavigate}
+        onSearch={handleSearchTab}
         basketCount={basket.reduce((a, b) => a + b.quantity, 0)}
+        favoritesCount={likedIds.length}
         language={language}
       />
 

@@ -6,6 +6,7 @@ import { translations } from '../translations';
 interface NavbarProps {
   onNavigate: (page: string) => void;
   currentPage: string;
+  isVisible: boolean;
   basketCount: number;
   language: Language;
   onLanguageChange: (lang: Language) => void;
@@ -24,7 +25,7 @@ const LogoMark: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, language, onLanguageChange, user, onLogout, onOpenAuth, backendStatus, onRedeemWholesaleCode }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, isVisible, basketCount, language, onLanguageChange, user, onLogout, onOpenAuth, backendStatus, onRedeemWholesaleCode }) => {
   const t = translations;
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
@@ -81,9 +82,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, basketCount, l
   };
 
   return (
-    <nav className="bg-white border-b-2 border-gray-100 sticky top-0 z-50">
+    <nav
+      className={`bg-white border-b-2 border-gray-100 sticky top-0 z-50 transition-transform duration-300 will-change-transform ${
+        isVisible ? 'translate-y-0' : '-translate-y-full'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20">
+        <div className="flex justify-between h-16 md:h-20">
           <div className="flex items-center">
             <div 
               className="flex-shrink-0 flex items-center cursor-pointer group" 

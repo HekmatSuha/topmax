@@ -117,5 +117,18 @@ export const translations: Record<string, Record<Language, string>> = {
   wholesaleCodeGuestHint: { en: 'Sign in to use a wholesale code', ru: 'Войдите, чтобы ввести код', kk: 'Кодты енгізу үшін кіріңіз' },
   authMethodEmail: { en: 'Email', ru: 'Почта', kk: 'Пошта' },
   authMethodPhone: { en: 'Phone', ru: 'Телефон', kk: 'Телефон' },
-  phonePlaceholder: { en: 'Phone number', ru: 'Номер телефона', kk: 'Телефон нөмірі' }
+  phonePlaceholder: { en: 'Phone number', ru: 'Номер телефона', kk: 'Телефон нөмірі' },
+  tabCatalog: { en: 'Catalog', ru: 'Каталог', kk: 'Каталог' },
+  tabSearch: { en: 'Search', ru: 'Поиск', kk: 'Іздеу' },
+  tabBasket: { en: 'Cart', ru: 'Корзина', kk: 'Себет' },
+  tabFavorites: { en: 'Favorites', ru: 'Избранное', kk: 'Таңдаулылар' },
+  tabProfile: { en: 'Profile', ru: 'Профиль', kk: 'Профиль' },
+  favoritesTitle: { en: 'Favorites', ru: 'Избранное', kk: 'Таңдаулылар' },
+  noFavorites: { en: 'No favorites yet', ru: 'В избранном пока пусто', kk: 'Таңдаулылар әзірге бос' },
+  noFavoritesHint: { en: 'Tap the heart on any product to save it here.', ru: 'Нажмите на сердечко на товаре, чтобы сохранить его здесь.', kk: 'Тауардағы жүрекшені басып, осында сақтаңыз.' },
+  browseCatalog: { en: 'Browse catalog', ru: 'Перейти в каталог', kk: 'Каталогқа өту' },
+  profileTitle: { en: 'My Profile', ru: 'Мой профиль', kk: 'Менің профилім' },
+  loginPrompt: { en: 'Sign in to view your account details', ru: 'Войдите, чтобы посмотреть данные личного кабинета', kk: 'Жеке кабинеттегі ақпаратты қарау үшін жүйеге кіру қажет' },
+  accountLabel: { en: 'Account', ru: 'Аккаунт', kk: 'Аккаунт' },
+  languageLabel: { en: 'Language', ru: 'Язык', kk: 'Тіл' }
 };

@@ -6,68 +6,102 @@ import { translations } from '../translations';
 interface BottomNavProps {
   currentPage: string;
   onNavigate: (page: string) => void;
+  onSearch: () => void;
   basketCount: number;
+  favoritesCount: number;
   language: Language;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate, basketCount, language }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate, onSearch, basketCount, favoritesCount, language }) => {
   const t = translations;
+
+  const Badge: React.FC<{ count: number }> = ({ count }) =>
+    count > 0 ? (
+      <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-black text-white">
+        {count > 99 ? '99+' : count}
+      </span>
+    ) : null;
 
   const items = [
     {
       id: 'catalog',
-      label: t.catalog[language],
+      label: t.tabCatalog[language],
+      isActive: currentPage === 'home',
+      onClick: () => onNavigate('home'),
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
         </svg>
       ),
     },
     {
+      id: 'search',
+      label: t.tabSearch[language],
+      isActive: false,
+      onClick: onSearch,
+      icon: (
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      ),
+    },
+    {
       id: 'basket',
-      label: t.yourBasket[language],
+      label: t.tabBasket[language],
+      isActive: currentPage === 'basket',
+      onClick: () => onNavigate('basket'),
       icon: (
         <div className="relative">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
-          {basketCount > 0 && (
-            <span className="absolute -top-2 -right-2 w-5 h-5 bg-blue-600 text-white text-[10px] font-black rounded-full flex items-center justify-center">
-              {basketCount}
-            </span>
-          )}
+          <Badge count={basketCount} />
         </div>
       ),
     },
     {
-      id: 'contact',
-      label: t.contact[language],
+      id: 'favorites',
+      label: t.tabFavorites[language],
+      isActive: currentPage === 'favorites',
+      onClick: () => onNavigate('favorites'),
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <div className="relative">
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          <Badge count={favoritesCount} />
+        </div>
+      ),
+    },
+    {
+      id: 'profile',
+      label: t.tabProfile[language],
+      isActive: currentPage === 'profile',
+      onClick: () => onNavigate('profile'),
+      icon: (
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       ),
     },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden">
-      <div className="flex justify-around items-center h-16 px-2">
-        {items.map(item => {
-          const isActive = item.id === currentPage || (item.id === 'catalog' && currentPage === 'home');
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id === 'catalog' ? 'home' : item.id)}
-              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition-colors ${
-                isActive ? 'text-blue-600' : 'text-slate-400'
-              }`}
-            >
-              {item.icon}
-              <span className="text-[10px] font-bold">{item.label}</span>
-            </button>
-          );
-        })}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <div className="flex h-14 items-stretch justify-around px-1">
+        {items.map(item => (
+          <button
+            key={item.id}
+            onClick={item.onClick}
+            aria-label={item.label}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${
+              item.isActive ? 'text-blue-600' : 'text-slate-400'
+            }`}
+          >
+            {item.icon}
+            <span className="text-[10px] font-bold leading-none">{item.label}</span>
+          </button>
+        ))}
       </div>
     </nav>
   );
