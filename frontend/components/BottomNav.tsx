@@ -6,13 +6,14 @@ import { translations } from '../translations';
 interface BottomNavProps {
   currentPage: string;
   onNavigate: (page: string) => void;
+  onCatalog: () => void;
   onSearch: () => void;
   basketCount: number;
   favoritesCount: number;
   language: Language;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate, onSearch, basketCount, favoritesCount, language }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate, onCatalog, onSearch, basketCount, favoritesCount, language }) => {
   const t = translations;
 
   const Badge: React.FC<{ count: number }> = ({ count }) =>
@@ -27,7 +28,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate, onSearch
       id: 'catalog',
       label: t.tabCatalog[language],
       isActive: currentPage === 'home',
-      onClick: () => onNavigate('home'),
+      onClick: onCatalog,
       icon: (
         <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />

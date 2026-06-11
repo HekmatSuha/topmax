@@ -101,11 +101,13 @@ const App: React.FC = () => {
   const [productsError, setProductsError] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [showSearchSheet, setShowSearchSheet] = useState(false);
   const lastScrollY = useRef(0);
   const productsStartRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const imageSearchInputRef = useRef<HTMLInputElement>(null);
   const cameraSearchInputRef = useRef<HTMLInputElement>(null);
+  const sheetImageInputRef = useRef<HTMLInputElement>(null);
+  const sheetCameraInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef(0);
 
   const t = translations;
@@ -339,13 +341,15 @@ const App: React.FC = () => {
       setSelectedColor(selectedProduct.availableColors?.[0] || null);
       setActiveImageIndex(0);
       setShowVideo(false);
-      document.body.style.overflow = 'hidden';
     } else {
       setIsModalVisible(false);
       setShowVideo(false);
-      document.body.style.overflow = 'unset';
     }
   }, [selectedProduct]);
+
+  useEffect(() => {
+    document.body.style.overflow = (selectedProduct || showSearchSheet) ? 'hidden' : 'unset';
+  }, [selectedProduct, showSearchSheet]);
 
   useEffect(() => {
     return () => {
@@ -441,12 +445,22 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCatalogTab = () => {
+    if (currentPage !== 'home') {
+      handleNavigate('home');
+    } else {
+      setShowMobileFilters(true);
+    }
+  };
+
   const handleSearchTab = () => {
-    setCurrentPage('home');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    window.setTimeout(() => {
-      searchInputRef.current?.focus({ preventScroll: true });
-    }, 350);
+    setShowSearchSheet(true);
+  };
+
+  const closeSearchSheet = () => {
+    setShowSearchSheet(false);
+    setSearchQuery('');
+    resetVisualSearch();
   };
 
   const handleCategorySelect = (key: CategoryKey) => {
@@ -462,6 +476,8 @@ const App: React.FC = () => {
     setVisualSearchError('');
     if (imageSearchInputRef.current) imageSearchInputRef.current.value = '';
     if (cameraSearchInputRef.current) cameraSearchInputRef.current.value = '';
+    if (sheetImageInputRef.current) sheetImageInputRef.current.value = '';
+    if (sheetCameraInputRef.current) sheetCameraInputRef.current.value = '';
   };
 
   const handleImageSearch = (file?: File) => {
@@ -711,6 +727,18 @@ const App: React.FC = () => {
       .map(result => result.product);
   }, [products, filter, searchTokens]);
   const hasActiveSearch = searchTokens.length > 0 || Boolean(visualSearch);
+  const searchResults = useMemo(() => {
+    if (searchTokens.length === 0) return [];
+    return products
+      .map((product, index) => ({
+        product,
+        index,
+        score: scoreProductSearch(product, searchTokens),
+      }))
+      .filter(result => result.score > 0)
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .map(result => result.product);
+  }, [products, searchTokens]);
   const likedProducts = useMemo(
     () => products.filter(product => likedIds.includes(product.id)),
     [products, likedIds]
@@ -763,19 +791,18 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return (
-          <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
-            <div className="mb-8 text-center sm:mb-12">
+          <div className="mx-auto max-w-7xl px-3 pb-6 pt-1 sm:px-6 sm:py-10 lg:px-8">
+            <div className="hidden text-center md:mb-12 md:block">
               <p className="mb-6 text-base text-gray-500 sm:mb-10 sm:text-lg">
                 {t.premiumCollections[language]}
               </p>
               
-              <div className="mx-auto mb-8 max-w-3xl rounded-2xl border border-gray-200 bg-white p-2 text-left shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 sm:mb-10">
+              <div className="mx-auto mb-8 hidden max-w-3xl rounded-2xl border border-gray-200 bg-white p-2 text-left shadow-sm transition-all focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 sm:mb-10 md:block">
                 <div className="flex items-center gap-2 px-3">
                   <svg className="h-6 w-6 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
-                    ref={searchInputRef}
                     type="search"
                     placeholder={t.searchPlaceholder[language]}
                     value={searchQuery}
@@ -949,33 +976,7 @@ const App: React.FC = () => {
               </section>
             )}
 
-            {/* Mobile: filter trigger button */}
-            <div className={`sticky z-40 -mx-3 mb-5 border-y border-gray-100 bg-gray-50/95 px-3 py-3 backdrop-blur transition-[top] duration-300 md:hidden ${isHeaderVisible ? 'top-16' : 'top-0'}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  {renderCategoryIcon(filter, true)}
-                  <span className="text-sm font-black text-slate-900 truncate">
-                    {filter === 'All' ? t.all[language] : getCategoryLabel(filter)}
-                  </span>
-                  {filter !== 'All' && (
-                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700">
-                      {filteredProducts.length}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowMobileFilters(true)}
-                  className="flex shrink-0 items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 shadow-sm transition-all active:scale-95"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M7 9h10M11 14h2" />
-                  </svg>
-                  {t.filterBy[language]}
-                </button>
-              </div>
-            </div>
-
-            <div ref={productsStartRef} className="scroll-mt-36 md:scroll-mt-8" />
+            <div ref={productsStartRef} className="scroll-mt-20 md:scroll-mt-8" />
 
             <section className="mb-7 mt-4 border-t border-slate-200 pt-7 sm:mb-9 sm:mt-6 sm:pt-9">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -1143,6 +1144,7 @@ const App: React.FC = () => {
       <BottomNav
         currentPage={currentPage}
         onNavigate={handleNavigate}
+        onCatalog={handleCatalogTab}
         onSearch={handleSearchTab}
         basketCount={basket.reduce((a, b) => a + b.quantity, 0)}
         favoritesCount={likedIds.length}
@@ -1437,6 +1439,180 @@ const App: React.FC = () => {
       )}
 
       <Toast toasts={toasts} onRemove={removeToast} />
+
+      {showSearchSheet && (
+        <div className="fixed inset-0 z-[90] flex flex-col-reverse bg-white md:hidden">
+          <div className="border-t border-gray-100 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl bg-slate-100 px-3">
+                <svg className="h-5 w-5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  autoFocus
+                  type="search"
+                  placeholder={t.searchPlaceholder[language]}
+                  value={searchQuery}
+                  onChange={(e) => {
+                    if (visualSearch) resetVisualSearch();
+                    setSearchQuery(e.target.value);
+                  }}
+                  className="min-w-0 flex-1 bg-transparent py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-gray-400"
+                  aria-label={t.searchPlaceholder[language]}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); resetVisualSearch(); }}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500"
+                    aria-label={t.clearSearch[language]}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <input
+                ref={sheetImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => handleImageSearch(event.target.files?.[0])}
+              />
+              <button
+                type="button"
+                onClick={() => sheetImageInputRef.current?.click()}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 active:scale-95"
+                aria-label={t.searchPhoto[language]}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16v14H4V5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l2.5 2.5L13 11l4 5H7l1-5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 8.5h.01" />
+                </svg>
+              </button>
+              <input
+                ref={sheetCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(event) => handleImageSearch(event.target.files?.[0])}
+              />
+              <button
+                type="button"
+                onClick={() => sheetCameraInputRef.current?.click()}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 active:scale-95"
+                aria-label={t.searchCamera[language]}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h3l1.5-2h7L17 8h3v11H4V8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 11a3 3 0 100 6 3 3 0 000-6z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={closeSearchSheet}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 active:scale-95"
+                aria-label={t.clearSearch[language]}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {(visualSearch || visualSearchError) && (
+              <div className="mt-3 flex items-center gap-3">
+                {visualSearch ? (
+                  <>
+                    <img
+                      src={visualSearch.previewUrl}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-xl object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-black text-slate-900">
+                        {t.photoMatch[language]}: {visualSearch.label}
+                      </p>
+                      <p className="text-[10px] font-semibold text-slate-400">
+                        {Math.round(visualSearch.confidence * 100)}% {t.finishConfidence[language]}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs font-semibold text-red-500">{visualSearchError}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto pt-[env(safe-area-inset-top)] pb-2">
+            {!hasActiveSearch ? (
+              <div className="flex h-full flex-col items-center justify-center px-6 py-20 text-center">
+                <svg className="mb-5 h-14 w-14 text-slate-200" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <p className="text-sm font-semibold text-slate-400">{t.searchHint[language]}</p>
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center px-6 py-20 text-center">
+                <p className="mb-1 text-base font-bold text-slate-400">{t.noProductsFound[language]}</p>
+                <p className="text-xs text-slate-400">{t.noProductsHint[language]}</p>
+              </div>
+            ) : (
+              <>
+                <p className="px-4 pb-1 pt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {searchResults.length}/{products.length}
+                </p>
+                {searchResults.map(product => {
+                  const thumb = product.images?.find(img => img.isPrimary)?.url
+                    || product.images?.[0]?.url
+                    || product.imageUrls[0]
+                    || PLACEHOLDER_IMAGE;
+                  return (
+                    <button
+                      key={product.id}
+                      onClick={() => handleSelectProduct(product)}
+                      className="flex w-full items-center gap-3 border-b border-gray-50 px-4 py-3 text-left transition-colors active:bg-slate-50"
+                    >
+                      <img
+                        src={thumb}
+                        alt=""
+                        loading="lazy"
+                        className="h-14 w-14 shrink-0 rounded-xl border border-slate-100 bg-white object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-slate-900">
+                          {getLocalizedText(product.name, product.itemCode)}
+                        </p>
+                        <p className="truncate text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {product.itemCode} · {getCategoryLabel(product.category, product)}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        {hasWholesalePrice(product) ? (
+                          <span className="text-sm font-black text-emerald-600">
+                            {formatUsdPrice(product.wholesalePriceUsd!)}
+                          </span>
+                        ) : product.price != null ? (
+                          <span className="text-sm font-black text-slate-900">
+                            {formatKztPrice(product.price)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black uppercase text-blue-600">
+                            {t.priceOnRequestShort[language]}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showMobileFilters && (
         <div className="fixed inset-0 z-[120] flex flex-col justify-end md:hidden">

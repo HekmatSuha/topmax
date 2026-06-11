@@ -83,27 +83,27 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, isVisible, bas
 
   return (
     <nav
-      className={`bg-white border-b-2 border-gray-100 sticky top-0 z-50 transition-transform duration-300 will-change-transform ${
+      className={`bg-white md:border-b-2 border-gray-100 sticky top-0 z-50 transition-transform duration-300 will-change-transform ${
         isVisible ? 'translate-y-0' : '-translate-y-full'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 md:h-20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex justify-center md:justify-between h-12 md:h-20">
           <div className="flex items-center">
             <div 
               className="flex-shrink-0 flex items-center cursor-pointer group" 
               onClick={() => onNavigate('home')}
             >
-              <LogoMark className="w-16 h-8 text-slate-900 mr-3 group-hover:scale-110 transition-transform duration-300" />
-              <div className="flex flex-col items-center -space-y-1.5">
+              <LogoMark className="w-12 h-6 md:w-16 md:h-8 text-slate-900 mr-2 md:mr-3 group-hover:scale-110 transition-transform duration-300" />
+              <div className="flex flex-col items-center -space-y-1 md:-space-y-1.5">
                 <div className="flex items-center gap-1">
-                  <span className="text-xl font-black tracking-tighter text-slate-900 uppercase scale-x-110">TOP</span>
+                  <span className="text-base md:text-xl font-black tracking-tighter text-slate-900 uppercase scale-x-110">TOP</span>
                   <div className={`w-2 h-2 rounded-full mt-1 ${
                     backendStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 
                     backendStatus === 'failed' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse'
                   }`} title={`Backend: ${backendStatus}`} />
                 </div>
-                <span className="text-[10px] font-medium tracking-[0.4em] text-slate-600 uppercase">MAX</span>
+                <span className="text-[8px] md:text-[10px] font-medium tracking-[0.4em] text-slate-600 uppercase">MAX</span>
               </div>
             </div>
             <div className="hidden md:ml-10 md:flex md:space-x-4">
@@ -124,7 +124,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, isVisible, bas
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <div className="relative" ref={languageDropdownRef}>
+            <div className="relative hidden md:block" ref={languageDropdownRef}>
               <button
                 onClick={() => setIsLanguageOpen(prev => !prev)}
                 aria-label="Change language"
@@ -171,7 +171,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, isVisible, bas
             </div>
 
             {user ? (
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative hidden md:block" ref={dropdownRef}>
                 <button 
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                   aria-label="Open account menu"
@@ -246,17 +246,17 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, isVisible, bas
                 )}
               </div>
             ) : (
-              <button 
+              <button
                 onClick={onOpenAuth}
-                className="bg-slate-900 text-white px-4 sm:px-6 py-2.5 rounded-xl font-black text-sm hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+                className="hidden bg-slate-900 text-white px-4 sm:px-6 py-2.5 rounded-xl font-black text-sm hover:bg-blue-600 transition-all shadow-lg active:scale-95 md:block"
               >
                 {t.login[language]}
               </button>
             )}
 
-            <button 
+            <button
               onClick={() => onNavigate('basket')}
-              className="relative p-2.5 bg-slate-100 rounded-2xl text-slate-600 hover:text-blue-600 transition-all active:scale-90"
+              className="relative hidden p-2.5 bg-slate-100 rounded-2xl text-slate-600 hover:text-blue-600 transition-all active:scale-90 md:block"
             >
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />

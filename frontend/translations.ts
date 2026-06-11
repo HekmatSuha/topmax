@@ -130,5 +130,6 @@ export const translations: Record<string, Record<Language, string>> = {
   profileTitle: { en: 'My Profile', ru: 'Мой профиль', kk: 'Менің профилім' },
   loginPrompt: { en: 'Sign in to view your account details', ru: 'Войдите, чтобы посмотреть данные личного кабинета', kk: 'Жеке кабинеттегі ақпаратты қарау үшін жүйеге кіру қажет' },
   accountLabel: { en: 'Account', ru: 'Аккаунт', kk: 'Аккаунт' },
-  languageLabel: { en: 'Language', ru: 'Язык', kk: 'Тіл' }
+  languageLabel: { en: 'Language', ru: 'Язык', kk: 'Тіл' },
+  searchHint: { en: 'Start typing to find products', ru: 'Начните вводить, чтобы найти товары', kk: 'Тауарларды табу үшін тере бастаңыз' }
 };
