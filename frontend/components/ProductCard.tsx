@@ -38,6 +38,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   }, [product.images, product.imageUrls]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  // Only the cover image is fetched up front; the rest of the slideshow
+  // loads on first hover to keep catalog bandwidth down.
+  const [preloadAllImages, setPreloadAllImages] = useState(false);
   const formatUsdPrice = (price: string) =>
     `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const formatKztPrice = (price: string | number) =>
@@ -62,14 +65,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
       className={`group flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-slate-200/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] ${
         outOfStock ? 'opacity-75' : ''
       }`}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        setPreloadAllImages(true);
+      }}
       onMouseLeave={() => {
         setIsHovered(false);
         setActiveImageIndex(0);
       }}
     >
       <div className="relative aspect-square overflow-hidden bg-slate-100 sm:h-44 sm:aspect-auto cursor-pointer" onClick={() => onInquire(product)}>
-        {slideshowImages.map((imageUrl, index) => (
+        {slideshowImages.map((imageUrl, index) => (preloadAllImages || index === activeImageIndex) && (
           <img
             key={`${imageUrl}-${index}`}
             src={imageUrl}
