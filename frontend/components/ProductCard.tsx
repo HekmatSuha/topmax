@@ -160,35 +160,39 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {product.dimensions}
             </span>
           ) : null}
-          {hasWholesalePrice ? (
-            <span className="flex items-baseline gap-1.5">
-              <span className="text-sm font-black text-emerald-600 sm:text-base">
-                {formatUsdPrice(product.wholesalePriceUsd!)}
-              </span>
-              {product.price != null ? (
-                <span className="text-[10px] font-bold text-slate-400 line-through">
-                  {formatKztPrice(product.price.toString())}
-                </span>
-              ) : null}
-            </span>
-          ) : product.price != null ? (
-            <span className="text-sm font-black text-slate-950 sm:text-base">
-              {formatKztPrice(product.price.toString())}
-            </span>
-          ) : (
-            <span className="inline-flex rounded-md bg-blue-50 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-blue-700">
-              {translations.priceOnRequestShort[language]}
-            </span>
-          )}
         </div>
 
-        <div className="mt-auto border-t border-slate-100 pt-2">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+          <div className="min-w-0 flex-1">
+            {hasWholesalePrice ? (
+              <div className="flex flex-col leading-tight">
+                <span className="truncate text-sm font-black text-emerald-600 sm:text-base">
+                  {formatUsdPrice(product.wholesalePriceUsd!)}
+                </span>
+                {product.price != null ? (
+                  <span className="truncate text-[10px] font-bold text-slate-400 line-through">
+                    {formatKztPrice(product.price.toString())}
+                  </span>
+                ) : null}
+              </div>
+            ) : product.price != null ? (
+              <span className="block truncate text-sm font-black text-slate-950 sm:text-base">
+                {formatKztPrice(product.price.toString())}
+              </span>
+            ) : (
+              <span className="inline-flex rounded-md bg-blue-50 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-blue-700">
+                {translations.priceOnRequestShort[language]}
+              </span>
+            )}
+          </div>
+
           {onAddToBasket ? (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onAddToBasket(product); }}
               disabled={outOfStock}
-              className="flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-slate-950 px-2 text-[10px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:text-[11px]"
+              aria-label={translations.buy[language]}
+              className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-slate-950 px-2.5 text-[10px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:text-[11px]"
             >
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
