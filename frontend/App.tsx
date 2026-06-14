@@ -1136,8 +1136,9 @@ const App: React.FC = () => {
             </>
             )}
 
-            {/* Divider and Contact Section */}
-            <div className="border-t border-gray-100 pt-10">
+            {/* Divider and Contact Section — desktop only; on phones the home
+                page stays a clean catalogue and Contact is reached via its tab. */}
+            <div className="hidden border-t border-gray-100 pt-10 md:block">
                <Contact language={language} />
             </div>
           </div>
