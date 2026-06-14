@@ -4,6 +4,8 @@ import { Language } from './types';
 export const translations: Record<string, Record<Language, string>> = {
   home: { en: 'Home', ru: 'Главная', kk: 'Басты бет' },
   catalog: { en: 'Browse Products', ru: 'Наши товары', kk: 'Біздің тауарлар' },
+  shareCatalog: { en: 'Share', ru: 'Поделиться', kk: 'Бөлісу' },
+  linkCopied: { en: 'Copied!', ru: 'Скопировано!', kk: 'Көшірілді!' },
   contact: { en: 'Contact Us', ru: 'Контакты', kk: 'Байланыс' },
   priceOnRequest: { en: 'Contact us to know the price', ru: 'Свяжитесь с нами, чтобы узнать цену', kk: 'Бағасын білу үшін бізге хабарласыңыз' },
   priceOnRequestShort: { en: 'Price on request', ru: 'Цена по запросу', kk: 'Баға сұрау' },

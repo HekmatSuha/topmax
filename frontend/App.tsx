@@ -76,7 +76,10 @@ const inferFinishFromRgb = (color: { r: number; g: number; b: number }) => {
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('ru');
   const [currentPage, setCurrentPage] = useState<PageKey>('home');
-  const [filter, setFilter] = useState<CategoryKey>('All');
+  const [filter, setFilter] = useState<CategoryKey>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('category') || 'All';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [visualSearch, setVisualSearch] = useState<VisualSearchResult | null>(null);
   const [visualSearchError, setVisualSearchError] = useState('');
@@ -86,6 +89,7 @@ const App: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [catalogShareCopied, setCatalogShareCopied] = useState(false);
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -109,6 +113,7 @@ const App: React.FC = () => {
   const sheetImageInputRef = useRef<HTMLInputElement>(null);
   const sheetCameraInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef(0);
+  const isFirstFilterSync = useRef(true);
 
   const t = translations;
 
@@ -162,6 +167,22 @@ const App: React.FC = () => {
     navigator.clipboard.writeText(url.toString()).then(() => {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
+    });
+  };
+
+  const handleShareCatalog = () => {
+    // Build a clean link to just this catalogue (category), dropping any
+    // open product so the client lands on the full category view.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('product');
+    if (filter && filter !== 'All') {
+      url.searchParams.set('category', filter);
+    } else {
+      url.searchParams.delete('category');
+    }
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      setCatalogShareCopied(true);
+      setTimeout(() => setCatalogShareCopied(false), 2000);
     });
   };
 
@@ -219,6 +240,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const onPopState = (e: PopStateEvent) => {
       const params = new URLSearchParams(window.location.search);
+      setFilter(params.get('category') || 'All');
       const id = params.get('product');
       if (id) {
         openProductById(id, products);
@@ -229,6 +251,28 @@ const App: React.FC = () => {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, [products]);
+
+  // Keep ?category in the URL in sync with the active filter so a catalogue
+  // (category) view can be shared as a direct link.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get('category') || 'All';
+    if (current === filter) {
+      isFirstFilterSync.current = false;
+      return;
+    }
+    if (filter && filter !== 'All') {
+      url.searchParams.set('category', filter);
+    } else {
+      url.searchParams.delete('category');
+    }
+    if (isFirstFilterSync.current) {
+      window.history.replaceState({ ...window.history.state, category: filter }, '', url.toString());
+    } else {
+      window.history.pushState({ ...window.history.state, category: filter }, '', url.toString());
+    }
+    isFirstFilterSync.current = false;
+  }, [filter]);
 
   useEffect(() => {
     // Check backend connection
@@ -1012,11 +1056,33 @@ const App: React.FC = () => {
                     {filter === 'All' ? t.all[language] : getCategoryLabel(filter)}
                   </h2>
                 </div>
-                {!isProductsLoading && !productsError && (
-                  <span className="inline-flex w-fit rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">
-                    {filteredProducts.length}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {filter !== 'All' && !hasActiveSearch && (
+                    <button
+                      type="button"
+                      onClick={handleShareCatalog}
+                      aria-label={catalogShareCopied ? t.linkCopied[language] : t.shareCatalog[language]}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-black uppercase tracking-widest text-blue-600 transition-colors hover:bg-blue-100"
+                    >
+                      {catalogShareCopied ? (
+                        <>
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          {t.linkCopied[language]}
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                          {t.shareCatalog[language]}
+                        </>
+                      )}
+                    </button>
+                  )}
+                  {!isProductsLoading && !productsError && (
+                    <span className="inline-flex w-fit rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white">
+                      {filteredProducts.length}
+                    </span>
+                  )}
+                </div>
               </div>
             </section>
 
