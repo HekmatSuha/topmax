@@ -469,8 +469,9 @@ const App: React.FC = () => {
   };
 
   const addToast = (message: string, type: ToastMessage['type'] = 'success', action?: ToastMessage['action']) => {
-    const id = Date.now().toString();
-    setToasts(prev => [...prev, { id, message, type, action }]);
+    const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+    // Show only the latest toast so rapid additions replace each other instead of piling up.
+    setToasts([{ id, message, type, action }]);
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 

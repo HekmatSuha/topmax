@@ -14,7 +14,7 @@ interface ToastItemProps {
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
   useEffect(() => {
-    const timer = setTimeout(() => onRemove(toast.id), toast.action ? 3000 : 1800);
+    const timer = setTimeout(() => onRemove(toast.id), 1000);
     return () => clearTimeout(timer);
   }, [toast.id, toast.action, onRemove]);
 
