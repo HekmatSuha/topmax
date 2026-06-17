@@ -25,6 +25,7 @@ export const translations: Record<string, Record<Language, string>> = {
   whatsappLabel: { en: 'WhatsApp', ru: 'WhatsApp', kk: 'WhatsApp' },
   login: { en: 'Sign In', ru: 'Войти', kk: 'Кіру' },
   signup: { en: 'Sign Up', ru: 'Регистрация', kk: 'Тіркелу' },
+  authTitle: { en: 'Sign in & Register', ru: 'Вход и регистрация', kk: 'Кіру мен тіркелу' },
   guest: { en: 'Continue as Guest', ru: 'Продолжить как гость', kk: 'Қонақ ретінде жалғастыру' },
   welcomeBack: { en: 'Welcome Back', ru: 'С возвращением', kk: 'Қош келдіңіз' },
   createAccount: { en: 'Create Account', ru: 'Создать аккаунт', kk: 'Тіркелгі жасау' },

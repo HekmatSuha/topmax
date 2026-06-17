@@ -9,23 +9,9 @@ interface AuthProps {
   onCancel?: () => void;
 }
 
-const BrandLogo: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={`flex flex-col items-center gap-4 ${className}`}>
-    <svg viewBox="0 0 300 120" className="w-24 h-12" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="85" cy="60" r="50" stroke="currentColor" strokeWidth="15"/>
-      <circle cx="150" cy="60" r="50" stroke="currentColor" strokeWidth="15"/>
-      <circle cx="215" cy="60" r="50" stroke="currentColor" strokeWidth="15"/>
-    </svg>
-    <div className="flex flex-col items-center -space-y-2">
-      <span className="text-4xl font-black tracking-tighter text-white uppercase scale-x-125">TOP</span>
-      <span className="text-[10px] font-medium tracking-[0.7em] text-slate-400 uppercase pl-[0.7em]">MAX</span>
-    </div>
-  </div>
-);
-
 const Auth: React.FC<AuthProps> = ({ language, onAuthComplete, onCancel }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
+  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('phone');
   const [formData, setFormData] = useState({ email: '', phone: '', password: '', name: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -76,22 +62,32 @@ const Auth: React.FC<AuthProps> = ({ language, onAuthComplete, onCancel }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xl">
-      <div className="w-full max-w-md max-h-[95vh] bg-white rounded-3xl shadow-2xl overflow-y-auto animate-in fade-in zoom-in duration-300 relative">
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all z-10"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        )}
-        <div className="bg-slate-900 px-8 py-8 text-center">
-          <BrandLogo className="text-white mb-2" />
-          <p className="text-slate-400 text-[10px] font-black tracking-widest uppercase mt-2">Premium Sanitary Ware</p>
+    <div
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onCancel}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="w-full sm:max-w-md max-h-[94vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300"
+      >
+        {/* Sticky header: drag handle + title + close */}
+        <div className="sticky top-0 z-10 bg-white px-6 pt-3 pb-3 border-b border-slate-100">
+          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-200 sm:hidden" />
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-black text-slate-900">{t.authTitle[language]}</h2>
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                aria-label="Close"
+                className="w-9 h-9 -mr-1.5 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex items-center justify-center transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="p-6 sm:p-8">
+        <div className="p-6 sm:p-8 pt-5 sm:pt-6">
           {/* Sign In / Sign Up tabs */}
           <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
             <button
