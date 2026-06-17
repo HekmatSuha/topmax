@@ -154,6 +154,9 @@ const Basket: React.FC<BasketProps> = ({
   const t = translations;
   const labels = documentLabels[language];
   const isSuperuser = Boolean(user?.isSuperuser);
+  // Registered users can always export a PDF; guests can too once they have
+  // unlocked wholesale access with a code (so they can build a price list).
+  const canCreatePdf = Boolean(user && (!user.isGuest || user.isWholesale));
   const isWholesaleList = items.length > 0 && items.every(hasWholesalePrice);
   const currency = isWholesaleList ? 'USD' : 'KZT';
   const [quotePrices, setQuotePrices] = useState<Record<string, number>>({});
@@ -250,7 +253,7 @@ const Basket: React.FC<BasketProps> = ({
   };
 
   const handleCreatePdf = async (action: PdfAction) => {
-    if (!user || user.isGuest) {
+    if (!canCreatePdf || !user) {
       onRequestLogin();
       return;
     }
@@ -681,7 +684,7 @@ const Basket: React.FC<BasketProps> = ({
               <div className="relative mb-3">
                 <button
                   onClick={() => {
-                    if (!user || user.isGuest) {
+                    if (!canCreatePdf) {
                       onRequestLogin();
                       return;
                     }
@@ -695,7 +698,7 @@ const Basket: React.FC<BasketProps> = ({
                   </svg>
                   {isGeneratingPdf
                     ? labels.preparing
-                    : user && !user.isGuest
+                    : canCreatePdf
                       ? labels.pdfOptions
                       : labels.signIn}
                 </button>

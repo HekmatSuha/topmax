@@ -73,35 +73,6 @@ const Profile: React.FC<ProfileProps> = ({
               </span>
             )}
           </div>
-
-          {!user.isWholesale && (
-            <div className="mt-5 border-t border-slate-100 pt-4">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">{t.wholesaleCodeLabel[language]}</p>
-              {wholesaleStatus === 'success' ? (
-                <p className="text-xs font-bold text-emerald-600">{t.wholesaleCodeSuccess[language]}</p>
-              ) : (
-                <form onSubmit={handleWholesaleSubmit} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={wholesaleCode}
-                    onChange={e => { setWholesaleCode(e.target.value); setWholesaleStatus('idle'); }}
-                    placeholder={t.wholesaleCodePlaceholder[language]}
-                    className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  />
-                  <button
-                    type="submit"
-                    disabled={wholesaleStatus === 'loading' || !wholesaleCode.trim()}
-                    className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-blue-600 disabled:opacity-40"
-                  >
-                    {wholesaleStatus === 'loading' ? '...' : t.wholesaleCodeApply[language]}
-                  </button>
-                </form>
-              )}
-              {wholesaleStatus === 'error' && (
-                <p className="mt-1.5 text-[11px] font-bold text-red-500">{wholesaleError}</p>
-              )}
-            </div>
-          )}
         </div>
       ) : (
         <div className="mb-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -144,6 +115,46 @@ const Profile: React.FC<ProfileProps> = ({
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
+      </div>
+
+      <div className="mb-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">{t.wholesaleCodeLabel[language]}</p>
+        {user?.isWholesale || wholesaleStatus === 'success' ? (
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-emerald-600">{t.wholesaleCodeSuccess[language]}</p>
+              <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{t.wholesaleCodeActiveHint[language]}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="mb-3 text-xs font-medium leading-5 text-slate-500">{t.wholesaleCodeIntro[language]}</p>
+            <form onSubmit={handleWholesaleSubmit} className="flex gap-2">
+              <input
+                type="text"
+                value={wholesaleCode}
+                onChange={e => { setWholesaleCode(e.target.value); setWholesaleStatus('idle'); }}
+                placeholder={t.wholesaleCodePlaceholder[language]}
+                className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              />
+              <button
+                type="submit"
+                disabled={wholesaleStatus === 'loading' || !wholesaleCode.trim()}
+                className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-blue-600 disabled:opacity-40"
+              >
+                {wholesaleStatus === 'loading' ? '...' : t.wholesaleCodeApply[language]}
+              </button>
+            </form>
+            {wholesaleStatus === 'error' && (
+              <p className="mt-1.5 text-[11px] font-bold text-red-500">{wholesaleError}</p>
+            )}
+          </>
+        )}
       </div>
 
       {user && (
