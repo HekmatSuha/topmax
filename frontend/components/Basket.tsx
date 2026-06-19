@@ -31,6 +31,14 @@ const escapeHtml = (value: unknown) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
+// iOS Safari can't render blob: URLs in a programmatically-opened tab and
+// ignores the <a download> attribute, so on iOS we route every PDF action
+// through the native share sheet (preview / save to Files / send all live there).
+const isIosDevice = () =>
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
 const cloneWithComputedStyles = (source: HTMLElement) => {
   const clone = source.cloneNode(true) as HTMLElement;
   const sourceElements = [source, ...Array.from(source.querySelectorAll<HTMLElement>('*'))];
@@ -268,12 +276,15 @@ const Basket: React.FC<BasketProps> = ({
       action === 'whatsapp' &&
       Boolean(navigator.share) &&
       /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const previewWindow = action === 'view' ? window.open('', '_blank') : null;
+    const ios = isIosDevice();
+    // On iOS we share the file instead of opening a tab, so don't pop a blank
+    // window that would be left orphaned (or blocked) after generation.
+    const previewWindow = action === 'view' && !ios ? window.open('', '_blank') : null;
     const whatsappWindow =
       action === 'whatsapp' && !supportsMobileFileShare
         ? window.open(whatsappUrl, '_blank')
         : null;
-    if (action === 'view' && !previewWindow) return;
+    if (action === 'view' && !ios && !previewWindow) return;
     setIsPdfMenuOpen(false);
     setIsGeneratingPdf(true);
 
@@ -505,7 +516,9 @@ const Basket: React.FC<BasketProps> = ({
             filename,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: {
-              scale: 2,
+              // iOS Safari caps canvas area (~16.7M px); a tall multi-item
+              // invoice at scale 2 overflows it and yields a blank PDF.
+              scale: ios ? 1.5 : 2,
               useCORS: true,
               backgroundColor: '#ffffff',
               logging: false,
@@ -525,18 +538,43 @@ const Basket: React.FC<BasketProps> = ({
       }
       const file = new File([blob], filename, { type: 'application/pdf' });
 
-      if (
-        (action === 'send' || action === 'whatsapp') &&
-        navigator.share &&
-        navigator.canShare?.({ files: [file] })
-      ) {
-        await navigator.share({
-          title: labels.receipt,
-          text: action === 'whatsapp'
-            ? whatsappMessage
-            : `${labels.receipt} ${labels.number} ${receiptNumber}`,
-          files: [file],
-        });
+      const downloadBlob = () => {
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      };
+
+      // 'send'/'whatsapp' always prefer the share sheet; on iOS 'view' and
+      // 'download' do too, since the browser-tab and <a download> paths are
+      // unreliable there.
+      const preferShare =
+        action === 'send' ||
+        action === 'whatsapp' ||
+        (ios && (action === 'view' || action === 'download'));
+
+      if (preferShare && navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: labels.receipt,
+            text: action === 'whatsapp'
+              ? whatsappMessage
+              : `${labels.receipt} ${labels.number} ${receiptNumber}`,
+            files: [file],
+          });
+        } catch (shareError) {
+          // AbortError == user dismissed the sheet (nothing to do). Anything
+          // else (e.g. iOS revoking user activation after a slow render) means
+          // the share was blocked, so fall back to a download so the PDF is
+          // never silently lost.
+          if ((shareError as { name?: string })?.name !== 'AbortError') {
+            downloadBlob();
+          }
+        }
       } else {
         const objectUrl = URL.createObjectURL(blob);
         if (action === 'view' && previewWindow) {
