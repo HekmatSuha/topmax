@@ -7,7 +7,17 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_GET
 from django.conf import settings
 
-from .models import Category, Product, ProductImage, SiteSettings, default_warranty
+from django.utils import timezone
+
+from .models import (
+    Category,
+    Product,
+    ProductImage,
+    SiteSettings,
+    WholesaleDevice,
+    WHOLESALE_DEVICE_COOKIE,
+    default_warranty,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -34,10 +44,28 @@ def _image_payload(img):
     }
 
 
+def _device_has_wholesale(request):
+    """Return True if the request carries a cookie for an active wholesale device."""
+    token = request.COOKIES.get(WHOLESALE_DEVICE_COOKIE)
+    if not token:
+        return False
+    device = WholesaleDevice.objects.filter(token=token, is_active=True).first()
+    if device is None:
+        return False
+    # Refresh last_seen at most once an hour to avoid a write on every request.
+    now = timezone.now()
+    if device.last_seen_at is None or (now - device.last_seen_at).total_seconds() > 3600:
+        device.last_seen_at = now
+        device.save(update_fields=["last_seen_at"])
+    return True
+
+
 def _can_view_wholesale_prices(request):
     if request is None:
         return False
     if request.session.get('wholesale_verified', False):
+        return True
+    if _device_has_wholesale(request):
         return True
     user = getattr(request, 'user', None)
     if user is None or not user.is_authenticated:

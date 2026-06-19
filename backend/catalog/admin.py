@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
-from .models import Category, Product, ProductImage, WholesaleCustomer, SiteSettings, default_warranty
+from .models import Category, Product, ProductImage, WholesaleCustomer, WholesaleDevice, SiteSettings, default_warranty
 
 LANGUAGES = ("en", "ru", "kk")
 LANGUAGE_LABELS = {"en": "English", "ru": "Russian", "kk": "Kazakh"}
@@ -205,6 +205,32 @@ class WholesaleCustomerAdmin(admin.ModelAdmin):
     list_display = ("user", "company_name", "is_approved", "updated_at")
     list_filter = ("is_approved",)
     search_fields = ("user__email", "user__username", "user__first_name", "company_name")
+
+
+@admin.register(WholesaleDevice)
+class WholesaleDeviceAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "is_active", "created_at", "last_seen_at", "short_user_agent")
+    list_filter = ("is_active",)
+    list_editable = ("is_active",)
+    search_fields = ("label", "token", "user_agent")
+    readonly_fields = ("token", "user_agent", "created_at", "last_seen_at")
+    fields = ("label", "is_active", "token", "user_agent", "created_at", "last_seen_at")
+    actions = ("revoke_devices", "reactivate_devices")
+
+    def short_user_agent(self, obj):
+        ua = obj.user_agent or ""
+        return (ua[:60] + "…") if len(ua) > 60 else ua
+    short_user_agent.short_description = "User agent"
+
+    @admin.action(description="Revoke wholesale access (deactivate)")
+    def revoke_devices(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"Revoked {updated} device(s).")
+
+    @admin.action(description="Reactivate wholesale access")
+    def reactivate_devices(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"Reactivated {updated} device(s).")
 
 
 @admin.register(SiteSettings)

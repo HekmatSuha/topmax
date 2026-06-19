@@ -32,11 +32,25 @@ def _user_payload(user):
     }
 
 
+def _guest_has_wholesale(request):
+    """True if a guest unlocked wholesale via the session or a registered device."""
+    if request.session.get("wholesale_verified", False):
+        return True
+    from catalog.models import WholesaleDevice, WHOLESALE_DEVICE_COOKIE
+    token = request.COOKIES.get(WHOLESALE_DEVICE_COOKIE)
+    if not token:
+        return False
+    return WholesaleDevice.objects.filter(token=token, is_active=True).exists()
+
+
 @require_GET
 def me(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({"user": None}, status=401)
-    return JsonResponse({"user": _user_payload(request.user)})
+    if request.user.is_authenticated:
+        return JsonResponse({"user": _user_payload(request.user)})
+    # Guest with an unlocked device/session keeps wholesale access on return visits.
+    if _guest_has_wholesale(request):
+        return JsonResponse({"user": {"name": "Guest", "email": "", "isGuest": True, "isWholesale": True}})
+    return JsonResponse({"user": None}, status=401)
 
 
 def _normalize_phone(phone):
@@ -136,7 +150,42 @@ def redeem_wholesale_code(request):
         profile.save()
         return JsonResponse({"user": _user_payload(request.user)})
 
-    # Guest: store wholesale access in the session for this visit
+    # Guest: store wholesale access in the session for this visit and register
+    # the device so it stays unlocked on future visits via a long-lived cookie.
     request.session['wholesale_verified'] = True
     request.session.modified = True
-    return JsonResponse({"user": {"name": "Guest", "email": "", "isGuest": True, "isWholesale": True}})
+
+    from django.conf import settings as dj_settings
+    from django.utils import timezone
+    from catalog.models import (
+        WholesaleDevice,
+        WHOLESALE_DEVICE_COOKIE,
+        WHOLESALE_DEVICE_MAX_AGE,
+    )
+
+    token = request.COOKIES.get(WHOLESALE_DEVICE_COOKIE)
+    device = WholesaleDevice.objects.filter(token=token).first() if token else None
+    if device is not None and not device.is_active:
+        # A revoked device must register again under a fresh token.
+        device = None
+    if device is None:
+        device = WholesaleDevice.objects.create(
+            user_agent=request.META.get("HTTP_USER_AGENT", "")[:512],
+            last_seen_at=timezone.now(),
+        )
+    else:
+        device.last_seen_at = timezone.now()
+        device.save(update_fields=["last_seen_at"])
+
+    response = JsonResponse(
+        {"user": {"name": "Guest", "email": "", "isGuest": True, "isWholesale": True}}
+    )
+    response.set_cookie(
+        WHOLESALE_DEVICE_COOKIE,
+        str(device.token),
+        max_age=WHOLESALE_DEVICE_MAX_AGE,
+        httponly=True,
+        samesite=getattr(dj_settings, "SESSION_COOKIE_SAMESITE", "Lax"),
+        secure=getattr(dj_settings, "SESSION_COOKIE_SECURE", False),
+    )
+    return response

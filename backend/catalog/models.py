@@ -1,7 +1,15 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+
+# Name of the cookie used to remember a guest device that has unlocked
+# wholesale pricing, and how long it stays valid (1 year).
+WHOLESALE_DEVICE_COOKIE = "wholesale_device"
+WHOLESALE_DEVICE_MAX_AGE = 60 * 60 * 24 * 365
 
 
 def default_warranty():
@@ -84,6 +92,35 @@ class WholesaleCustomer(models.Model):
 def create_wholesale_profile(sender, instance, created, **kwargs):
     if created:
         WholesaleCustomer.objects.create(user=instance)
+
+
+class WholesaleDevice(models.Model):
+    """A guest device (browser) that unlocked wholesale pricing with the code.
+
+    The device is remembered via a long-lived cookie holding ``token`` so the
+    user does not have to re-enter the code on future visits. Access can be
+    revoked per-device from the admin by unchecking ``is_active``.
+    """
+
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    label = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Optional name to identify this device/dealer.",
+    )
+    user_agent = models.CharField(max_length=512, blank=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Uncheck to revoke wholesale access for this device.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-last_seen_at", "-created_at"]
+
+    def __str__(self):
+        return self.label or str(self.token)
 
 
 class ProductImage(models.Model):
