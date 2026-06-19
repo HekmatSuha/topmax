@@ -170,6 +170,9 @@ const Basket: React.FC<BasketProps> = ({
   const [quotePrices, setQuotePrices] = useState<Record<string, number>>({});
   const [isPdfMenuOpen, setIsPdfMenuOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  // Surfaced on-screen so mobile users (who have no dev console) can report the
+  // real failure reason instead of a silent console error.
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
     setQuotePrices(current => {
@@ -286,6 +289,7 @@ const Basket: React.FC<BasketProps> = ({
         : null;
     if (action === 'view' && !ios && !previewWindow) return;
     setIsPdfMenuOpen(false);
+    setPdfError(null);
     setIsGeneratingPdf(true);
 
     const now = new Date();
@@ -596,6 +600,8 @@ const Basket: React.FC<BasketProps> = ({
       }
     } catch (error) {
       console.error('Failed to generate PDF:', error);
+      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      setPdfError(detail);
       previewWindow?.close();
     } finally {
       iframe.remove();
@@ -757,6 +763,12 @@ const Basket: React.FC<BasketProps> = ({
                       </button>
                     ))}
                   </div>
+                )}
+
+                {pdfError && (
+                  <p className="mt-2 break-words rounded-xl bg-red-50 px-3 py-2 text-[11px] font-semibold leading-snug text-red-600">
+                    {pdfError}
+                  </p>
                 )}
               </div>
 

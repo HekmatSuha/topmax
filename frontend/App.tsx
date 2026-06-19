@@ -114,6 +114,7 @@ const App: React.FC = () => {
   const sheetCameraInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef(0);
   const isFirstFilterSync = useRef(true);
+  const lastDataLoad = useRef(Date.now());
 
   const t = translations;
 
@@ -329,6 +330,43 @@ const App: React.FC = () => {
       localStorage.removeItem('topmax_likes');
       localStorage.removeItem('topmax_basket');
     }
+  }, []);
+
+  // Refetch fresh data when the tab is reopened from a saved/frozen state.
+  // Restoring a tab from bfcache (pageshow.persisted) or switching back to a
+  // backgrounded tab does NOT remount React, so the mount effect above never
+  // re-runs. Without this, a reopened tab would show stale products/categories.
+  useEffect(() => {
+    // Avoid hammering the backend on rapid tab switches: only refresh if the
+    // data is older than this threshold.
+    const STALE_AFTER_MS = 30_000;
+
+    const refreshIfStale = () => {
+      if (Date.now() - lastDataLoad.current < STALE_AFTER_MS) return;
+      lastDataLoad.current = Date.now();
+      loadProducts();
+      loadCategories();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshIfStale();
+    };
+
+    const onPageShow = (e: PageTransitionEvent) => {
+      // persisted === true means the page was restored from the bfcache
+      // (i.e. a previously saved/closed tab being reopened).
+      if (e.persisted) {
+        lastDataLoad.current = 0; // force refresh on restore
+        refreshIfStale();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onPageShow);
+    };
   }, []);
 
   useEffect(() => {
