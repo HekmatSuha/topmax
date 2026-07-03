@@ -8,7 +8,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
 from .auth_views import me, signup, signin, signout, redeem_wholesale_code
-from .frontend_views import spa_index
+from .frontend_views import spa_index, share_preview
 from catalog.views import (
     categories_api,
     products_api,
@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/auth/me/", me),
     path("api/auth/signout/", signout),
     path("api/auth/wholesale-code/", redeem_wholesale_code),
+    path("api/share/", share_preview),
     path("api/categories/", categories_api),
     path("api/products/", products_api),
     path("api/products/<int:pk>/", product_detail_api),

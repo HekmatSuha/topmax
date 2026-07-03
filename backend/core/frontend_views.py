@@ -10,6 +10,8 @@ same generic preview. This view rewrites the OG tags per request:
 """
 
 import html
+import json
+import random
 import re
 
 from django.conf import settings
@@ -83,6 +85,85 @@ def _set_meta(page, prop, value):
     return page.replace(
         "</head>", f'  <meta property="{prop}" content="{escaped}">\n</head>'
     )
+
+
+def _absolute_https(request, url):
+    """Absolute URL for crawlers; force https except on localhost."""
+    if not url.startswith(("http://", "https://")):
+        url = request.build_absolute_uri(url)
+    host = request.get_host().split(":")[0]
+    if url.startswith("http://") and host not in ("localhost", "127.0.0.1"):
+        url = "https://" + url[len("http://"):]
+    return url
+
+
+def share_preview(request):
+    """Link-preview page for WhatsApp/Telegram shares.
+
+    Served under /api/ because on production nginx serves the SPA's
+    index.html statically and only proxies /api/ to Django. Crawlers read
+    the OG tags from this response; human visitors are redirected straight
+    to the SPA category/product view.
+    """
+    target = _absolute_https(request, "/")
+    title = f"{SITE_NAME} | Премиальные решения для ванной в Казахстане"
+    description = (
+        "TopMax — всё для вашей ванной комнаты в одном месте. "
+        "Премиальная сантехника в Казахстане."
+    )
+    image = None
+
+    product_id = request.GET.get("product", "")
+    category_slug = request.GET.get("category", "")
+
+    if product_id.isdigit():
+        product = Product.objects.filter(pk=product_id).first()
+        if product:
+            target = _absolute_https(request, f"/?product={product.pk}")
+            title = f"{_localized(product.name, product.item_code)} | {SITE_NAME}"
+            description = _localized(product.description) or description
+            image = _product_image_url(product)
+    elif category_slug and category_slug.lower() != "all":
+        category = Category.objects.filter(slug=category_slug).first()
+        if category:
+            target = _absolute_https(request, f"/?category={category.slug}")
+            title = f"{_localized(category.name, category.slug)} | {SITE_NAME}"
+            candidates = [
+                url
+                for product in category.products.all()[:24]
+                if (url := _product_image_url(product))
+            ]
+            if candidates:
+                image = random.choice(candidates)
+
+    image_tag = ""
+    if image:
+        image = _absolute_https(request, image)
+        image_tag = (
+            f'<meta property="og:image" content="{html.escape(image, quote=True)}">\n'
+            '<meta name="twitter:card" content="summary_large_image">\n'
+        )
+
+    e_title = html.escape(title, quote=True)
+    e_description = html.escape(description, quote=True)
+    e_target = html.escape(target, quote=True)
+    page = (
+        "<!DOCTYPE html>\n"
+        '<html lang="ru">\n<head>\n<meta charset="utf-8">\n'
+        f"<title>{e_title}</title>\n"
+        f'<meta property="og:title" content="{e_title}">\n'
+        f'<meta property="og:description" content="{e_description}">\n'
+        f'<meta property="og:url" content="{e_target}">\n'
+        f'<meta property="og:type" content="website">\n'
+        f'<meta property="og:site_name" content="{SITE_NAME}">\n'
+        f"{image_tag}"
+        f'<meta http-equiv="refresh" content="0;url={e_target}">\n'
+        "</head>\n<body>\n"
+        f"<script>window.location.replace({json.dumps(target)});</script>\n"
+        f'<p><a href="{e_target}">{e_title}</a></p>\n'
+        "</body>\n</html>\n"
+    )
+    return HttpResponse(page)
 
 
 def spa_index(request, *args, **kwargs):

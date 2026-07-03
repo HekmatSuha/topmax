@@ -106,6 +106,10 @@ const App: React.FC = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [showSearchSheet, setShowSearchSheet] = useState(false);
+  const [showWholesaleModal, setShowWholesaleModal] = useState(false);
+  const [wholesaleCodeInput, setWholesaleCodeInput] = useState('');
+  const [isWholesaleSubmitting, setIsWholesaleSubmitting] = useState(false);
+  const [wholesaleModalError, setWholesaleModalError] = useState('');
   const lastScrollY = useRef(0);
   const productsStartRef = useRef<HTMLDivElement>(null);
   const imageSearchInputRef = useRef<HTMLInputElement>(null);
@@ -162,26 +166,32 @@ const App: React.FC = () => {
     }
   };
 
+  // Share links go through the backend's /api/share/ endpoint: messengers
+  // (WhatsApp/Telegram) read its OG tags to render a title + photo preview,
+  // and human visitors are instantly redirected to the normal catalogue view.
+  const buildShareUrl = (params: Record<string, string>) => {
+    const url = new URL('/api/share/', BACKEND_BASE_URL || window.location.origin);
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+    return url.toString();
+  };
+
   const handleShareProduct = () => {
-    const url = new URL(window.location.href);
-    if (selectedProduct) url.searchParams.set('product', String(selectedProduct.id));
-    navigator.clipboard.writeText(url.toString()).then(() => {
+    const url = selectedProduct
+      ? buildShareUrl({ product: String(selectedProduct.id) })
+      : window.location.origin;
+    navigator.clipboard.writeText(url).then(() => {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     });
   };
 
   const handleShareCatalog = () => {
-    // Build a clean link to just this catalogue (category), dropping any
-    // open product so the client lands on the full category view.
-    const url = new URL(window.location.href);
-    url.searchParams.delete('product');
-    if (filter && filter !== 'All') {
-      url.searchParams.set('category', filter);
-    } else {
-      url.searchParams.delete('category');
-    }
-    navigator.clipboard.writeText(url.toString()).then(() => {
+    // Link to just this catalogue (category), dropping any open product so
+    // the client lands on the full category view.
+    const url = filter && filter !== 'All'
+      ? buildShareUrl({ category: filter })
+      : window.location.origin;
+    navigator.clipboard.writeText(url).then(() => {
       setCatalogShareCopied(true);
       setTimeout(() => setCatalogShareCopied(false), 2000);
     });
@@ -511,6 +521,28 @@ const App: React.FC = () => {
       return { success: true };
     } catch {
       return { success: false, error: 'Network error.' };
+    }
+  };
+
+  // Wholesale access is already unlocked when the signed-in user is approved
+  // or the device/session was verified (backend then exposes wholesale prices).
+  const hasWholesaleAccess =
+    Boolean(user?.isWholesale) || products.some(p => p.isWholesaleVisible);
+
+  const handleWholesaleModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = wholesaleCodeInput.trim();
+    if (!code || isWholesaleSubmitting) return;
+    setIsWholesaleSubmitting(true);
+    setWholesaleModalError('');
+    const result = await handleRedeemWholesaleCode(code);
+    setIsWholesaleSubmitting(false);
+    if (result.success) {
+      setWholesaleCodeInput('');
+      setShowWholesaleModal(false);
+      addToast(t.wholesaleCodeSuccess[language]);
+    } else {
+      setWholesaleModalError(result.error || t.wholesaleCodeError[language]);
     }
   };
 
@@ -1091,7 +1123,17 @@ const App: React.FC = () => {
                     {filter === 'All' ? t.all[language] : getCategoryLabel(filter)}
                   </h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {!hasWholesaleAccess && !isProductsLoading && !productsError && (
+                    <button
+                      type="button"
+                      onClick={() => setShowWholesaleModal(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black uppercase tracking-widest text-emerald-600 transition-colors hover:bg-emerald-100"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                      {t.wholesaleUnlockCta[language]}
+                    </button>
+                  )}
                   {filter !== 'All' && !hasActiveSearch && (
                     <button
                       type="button"
@@ -1417,7 +1459,7 @@ const App: React.FC = () => {
               <div className="bg-white p-5 sm:p-7 lg:p-9">
                 <div className="lg:sticky lg:top-24">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">
+                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-black">
                     {selectedProduct.itemCode}
                   </span>
                   <span className="rounded-md bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-blue-600">
@@ -1430,7 +1472,7 @@ const App: React.FC = () => {
 
                 <div className="mb-5 flex flex-wrap gap-2">
                   {selectedProduct.dimensions && (
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-700 shadow-sm">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-black shadow-sm">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                       <span className="text-[10px] font-black uppercase tracking-widest">{selectedProduct.dimensions}</span>
                     </div>
@@ -1561,6 +1603,51 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showWholesaleModal && (
+        <div
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-900/60 p-4"
+          onClick={() => setShowWholesaleModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <h3 className="text-lg font-black text-slate-950">{t.wholesaleCodeLabel[language]}</h3>
+              <button
+                type="button"
+                onClick={() => setShowWholesaleModal(false)}
+                aria-label="Close"
+                className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-slate-500">{t.wholesaleCodeIntro[language]}</p>
+            <form onSubmit={handleWholesaleModalSubmit} className="space-y-3">
+              <input
+                autoFocus
+                type="text"
+                value={wholesaleCodeInput}
+                onChange={e => setWholesaleCodeInput(e.target.value)}
+                placeholder={t.wholesaleCodePlaceholder[language]}
+                className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm font-bold focus:border-emerald-500 focus:outline-none"
+              />
+              {wholesaleModalError && (
+                <p className="text-xs font-bold text-red-500">{wholesaleModalError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={isWholesaleSubmitting || !wholesaleCodeInput.trim()}
+                className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase tracking-widest text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {isWholesaleSubmitting ? '…' : t.wholesaleCodeApply[language]}
+              </button>
+            </form>
           </div>
         </div>
       )}

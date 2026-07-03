@@ -114,6 +114,7 @@ export const translations: Record<string, Record<Language, string>> = {
   backToCategories: { en: 'Back', ru: 'Назад', kk: 'Артқа' },
   tryAgain: { en: 'Try Again', ru: 'Попробовать снова', kk: 'Қайталап көру' },
   wholesaleCodeLabel: { en: 'Wholesale Access', ru: 'Оптовый доступ', kk: 'Көтерме қатынасы' },
+  wholesaleUnlockCta: { en: 'Wholesale prices', ru: 'Оптовые цены', kk: 'Көтерме бағалар' },
   wholesaleCodePlaceholder: { en: 'Enter code...', ru: 'Введите код...', kk: 'Кодты енгізіңіз...' },
   wholesaleCodeApply: { en: 'Apply', ru: 'Применить', kk: 'Қолдану' },
   wholesaleCodeSuccess: { en: 'Wholesale access unlocked!', ru: 'Оптовый доступ открыт!', kk: 'Көтерме қатынас ашылды!' },

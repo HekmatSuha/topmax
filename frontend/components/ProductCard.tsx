@@ -153,11 +153,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </h3>
 
         <div className="mb-1.5 flex flex-wrap items-center gap-1">
-          <span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+          <span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-black">
             {product.itemCode}
           </span>
           {product.dimensions ? (
-            <span className="rounded-md bg-slate-50 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
+            <span className="rounded-md bg-slate-50 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-black">
               {product.dimensions}
             </span>
           ) : null}
