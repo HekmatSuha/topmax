@@ -88,12 +88,21 @@ def signup(request):
             return JsonResponse({"error": "An account with this phone number already exists."}, status=409)
         username = phone
 
+    # Read this before login(), which cycles/flushes the session.
+    had_wholesale = _guest_has_wholesale(request)
+
     user = User.objects.create_user(
         username=username,
         email=email,
         password=password,
         first_name=name,
     )
+    # A guest who unlocked wholesale (e.g. via an invite link) keeps that
+    # status on their new account instead of having to redeem the code again.
+    if had_wholesale:
+        profile = user.wholesale_profile
+        profile.is_approved = True
+        profile.save()
     login(request, user)
     return JsonResponse({"user": _user_payload(user)}, status=201)
 

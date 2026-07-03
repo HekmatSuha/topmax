@@ -350,6 +350,31 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // A shared invite link (?wholesale=CODE) redeems the code automatically so
+  // the visitor gets wholesale access with a single click — no typing needed.
+  // The code is removed from the URL afterwards so it isn't re-shared or
+  // re-submitted on reload.
+  const wholesaleLinkHandled = useRef(false);
+  useEffect(() => {
+    if (wholesaleLinkHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const code = (params.get('wholesale') || '').trim();
+    if (!code) return;
+    wholesaleLinkHandled.current = true;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('wholesale');
+    window.history.replaceState(window.history.state, '', url.toString());
+
+    handleRedeemWholesaleCode(code).then(result => {
+      if (result.success) {
+        addToast(t.wholesaleCodeSuccess[language]);
+      } else {
+        addToast(result.error || t.wholesaleCodeError[language], 'error');
+      }
+    });
+  }, []);
+
   // Refetch fresh data when the tab is reopened from a saved/frozen state.
   // Restoring a tab from bfcache (pageshow.persisted) or switching back to a
   // backgrounded tab does NOT remount React, so the mount effect above never
