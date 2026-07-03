@@ -7,8 +7,8 @@ from django.urls import path, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
-from django.views.generic import TemplateView
 from .auth_views import me, signup, signin, signout, redeem_wholesale_code
+from .frontend_views import spa_index
 from catalog.views import (
     categories_api,
     products_api,
@@ -39,7 +39,9 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-# Serve the React frontend — must be LAST (catches all non-api/admin routes)
+# Serve the React frontend — must be LAST (catches all non-api/admin routes).
+# spa_index injects per-link Open Graph tags so shared category/product links
+# get a proper preview (title + thumbnail) in WhatsApp/Telegram.
 urlpatterns += [
-    re_path(r"^(?!api/|admin/|static/|media/).*$", TemplateView.as_view(template_name="index.html")),
+    re_path(r"^(?!api/|admin/|static/|media/).*$", spa_index),
 ]

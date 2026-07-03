@@ -1042,16 +1042,14 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-                  {categoryShowcase.map((card, index) => (
+                  {categoryShowcase.map((card) => (
                     <button
                       type="button"
                       key={card.category}
                       onClick={() => handleCategorySelect(card.category)}
                       className={`group relative min-h-48 overflow-hidden rounded-3xl border bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)] ${
-                        index === 0 ? 'col-span-2 min-h-56' : ''
-                      } ${
                         filter === card.category ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'
-                      } sm:col-span-1 sm:min-h-52`}
+                      } sm:min-h-52`}
                     >
                       <div className="absolute inset-x-0 top-0 z-20 flex min-h-12 items-center justify-center bg-gradient-to-r from-slate-950 to-slate-800 px-4 py-2 text-center">
                         <h3 className="text-base font-black leading-tight text-white sm:text-lg">
