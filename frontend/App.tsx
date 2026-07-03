@@ -253,6 +253,19 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', onPopState);
   }, [products]);
 
+  // When the page is opened via a shared catalogue link (?category=...),
+  // scroll straight to the product list so the visitor lands on the category
+  // view instead of the top of the home page. Skip it when a product link is
+  // present — the product modal opens on top anyway.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('category') && !params.get('product')) {
+      window.setTimeout(() => {
+        productsStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, []);
+
   // Keep ?category in the URL in sync with the active filter so a catalogue
   // (category) view can be shared as a direct link.
   useEffect(() => {
