@@ -253,18 +253,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', onPopState);
   }, [products]);
 
-  // When the page is opened via a shared catalogue link (?category=...),
-  // scroll straight to the product list so the visitor lands on the category
-  // view instead of the top of the home page. Skip it when a product link is
-  // present — the product modal opens on top anyway.
+  // Opening a category renders it as its own page (the hero and the category
+  // grid are hidden), so every category change should start at the top of the
+  // screen — both when a card is tapped and when the browser back button
+  // returns to the overview.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('category') && !params.get('product')) {
-      window.setTimeout(() => {
-        productsStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }, []);
+    window.scrollTo({ top: 0 });
+  }, [filter]);
 
   // Keep ?category in the URL in sync with the active filter so a catalogue
   // (category) view can be shared as a direct link.
@@ -561,9 +556,6 @@ const App: React.FC = () => {
 
   const handleCategorySelect = (key: CategoryKey) => {
     setFilter(key);
-    window.setTimeout(() => {
-      productsStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 0);
   };
 
   const resetVisualSearch = () => {
@@ -906,6 +898,7 @@ const App: React.FC = () => {
       case 'home':
         return (
           <div className="mx-auto max-w-7xl px-3 pb-6 pt-1 sm:px-6 sm:py-10 lg:px-8">
+            {filter === 'All' && (
             <div className="hidden text-center md:mb-12 md:block">
               <p className="mb-6 text-base text-gray-500 sm:mb-10 sm:text-lg">
                 {t.premiumCollections[language]}
@@ -1025,20 +1018,14 @@ const App: React.FC = () => {
                 )}
               </div>
             </div>
+            )}
 
-            {!isProductsLoading && !productsError && (
+            {filter === 'All' && !isProductsLoading && !productsError && (
               <section className="mb-8 sm:mb-10" aria-label={t.filterByCategory[language]}>
                 <div className="mb-4 flex items-end justify-between gap-4">
                   <h2 className="text-lg font-black text-slate-950 sm:text-2xl">
                     {t.filterByCategory[language]}
                   </h2>
-                  <button
-                    type="button"
-                    onClick={() => handleCategorySelect('All')}
-                    className="hidden rounded-xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-600 transition-colors hover:bg-slate-200 sm:block"
-                  >
-                    {t.all[language]}
-                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
@@ -1047,9 +1034,7 @@ const App: React.FC = () => {
                       type="button"
                       key={card.category}
                       onClick={() => handleCategorySelect(card.category)}
-                      className={`group relative min-h-48 overflow-hidden rounded-3xl border bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)] ${
-                        filter === card.category ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'
-                      } sm:min-h-52`}
+                      className="group relative min-h-48 overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)] sm:min-h-52"
                     >
                       <div className="absolute inset-x-0 top-0 z-20 flex min-h-12 items-center justify-center bg-gradient-to-r from-slate-950 to-slate-800 px-4 py-2 text-center">
                         <h3 className="text-base font-black leading-tight text-white sm:text-lg">
@@ -1087,19 +1072,19 @@ const App: React.FC = () => {
 
             {(filter !== 'All' || hasActiveSearch) && (
             <>
-            <section className="mb-7 mt-4 border-t border-slate-200 pt-7 sm:mb-9 sm:mt-6 sm:pt-9">
+            <section className={`mb-7 sm:mb-9 ${filter === 'All' ? 'mt-4 border-t border-slate-200 pt-7 sm:mt-6 sm:pt-9' : 'mt-2 sm:mt-0'}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   {!hasActiveSearch && (
                     <button
                       type="button"
                       onClick={() => handleCategorySelect('All')}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 transition-colors hover:bg-slate-200"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2.5 text-sm font-black text-slate-700 transition-colors hover:bg-slate-200"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                       </svg>
-                      {t.filterByCategory[language]}
+                      {t.backToCategories[language]}
                     </button>
                   )}
                   <h2 className="text-lg font-black text-slate-950 sm:text-2xl">

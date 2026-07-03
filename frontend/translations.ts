@@ -111,6 +111,7 @@ export const translations: Record<string, Record<Language, string>> = {
   noProductsHint: { en: 'Try adjusting your search or clearing the filters.', ru: 'Попробуйте изменить запрос или очистить фильтры.', kk: 'Сұрауды өзгертіп немесе сүзгілерді тазартып көріңіз.' },
   filterDone: { en: 'Done', ru: 'Готово', kk: 'Дайын' },
   filterByCategory: { en: 'Filter by Category', ru: 'Фильтр по категории', kk: 'Санат бойынша сүзу' },
+  backToCategories: { en: 'Back', ru: 'Назад', kk: 'Артқа' },
   tryAgain: { en: 'Try Again', ru: 'Попробовать снова', kk: 'Қайталап көру' },
   wholesaleCodeLabel: { en: 'Wholesale Access', ru: 'Оптовый доступ', kk: 'Көтерме қатынасы' },
   wholesaleCodePlaceholder: { en: 'Enter code...', ru: 'Введите код...', kk: 'Кодты енгізіңіз...' },
