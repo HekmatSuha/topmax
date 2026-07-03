@@ -1697,20 +1697,25 @@ const App: React.FC = () => {
                     || product.images?.[0]?.url
                     || product.imageUrls[0]
                     || PLACEHOLDER_IMAGE;
+                  const outOfStock = product.inStock === false;
                   return (
                     <button
                       key={product.id}
                       onClick={() => handleSelectProduct(product)}
-                      className="flex w-full items-center gap-3 border-b border-gray-50 px-4 py-3 text-left transition-colors active:bg-slate-50"
+                      className={`flex w-full items-center gap-3 border-b border-gray-50 px-4 py-3 text-left transition-colors active:bg-slate-50 ${
+                        outOfStock ? 'opacity-60' : ''
+                      }`}
                     >
                       <img
                         src={thumb}
                         alt=""
                         loading="lazy"
-                        className="h-14 w-14 shrink-0 rounded-xl border border-slate-100 bg-white object-cover"
+                        className={`h-14 w-14 shrink-0 rounded-xl border border-slate-100 bg-white object-cover ${
+                          outOfStock ? 'grayscale' : ''
+                        }`}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-slate-900">
+                        <p className={`truncate text-sm font-bold ${outOfStock ? 'text-slate-400' : 'text-slate-900'}`}>
                           {getLocalizedText(product.name, product.itemCode)}
                         </p>
                         <p className="truncate text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -1718,7 +1723,11 @@ const App: React.FC = () => {
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
-                        {hasWholesalePrice(product) ? (
+                        {outOfStock ? (
+                          <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-red-500">
+                            {t.outOfStock[language]}
+                          </span>
+                        ) : hasWholesalePrice(product) ? (
                           <span className="text-sm font-black text-emerald-600">
                             {formatUsdPrice(product.wholesalePriceUsd!)}
                           </span>
