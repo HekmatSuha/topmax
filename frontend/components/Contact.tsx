@@ -66,17 +66,6 @@ const Contact: React.FC<ContactProps> = ({ language }) => {
                 <span className="text-lg font-bold">+{COMPANY_PHONE}</span>
               </div>
             </a>
-            <a href="mailto:info@topmax.kz" className="flex items-center gap-4 group">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-blue-600 transition-all">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
-              </div>
-              <div>
-                <span className="block text-[10px] font-black uppercase text-white/40">{t.emailLabel[language]}</span>
-                <span className="text-lg font-bold">info@topmax.kz</span>
-              </div>
-            </a>
           </div>
         </div>
       </div>
