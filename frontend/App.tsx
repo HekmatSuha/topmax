@@ -1619,34 +1619,34 @@ const App: React.FC = () => {
 
                 <div className="mt-auto rounded-2xl border border-slate-100 bg-slate-50 p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-left">
-                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                        {hasWholesalePrice(selectedProduct) ? t.wholesalePrice[language] : t.price[language]}
-                      </span>
-                      {hasWholesalePrice(selectedProduct) ? (
-                        <span className="text-2xl font-black text-emerald-600 sm:text-3xl">
-                          {formatUsdPrice(selectedProduct.wholesalePriceUsd!)}
+                    {/* Hidden entirely when there is no visible price; clients
+                        without a wholesale code see no price hint at all. */}
+                    {(hasWholesalePrice(selectedProduct) || selectedProduct.price != null) && (
+                      <div className="text-left">
+                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                          {hasWholesalePrice(selectedProduct) ? t.wholesalePrice[language] : t.price[language]}
                         </span>
-                      ) : selectedProduct.price != null ? (
-                        <span className="text-2xl font-black text-slate-900 sm:text-3xl">
-                          {formatKztPrice(selectedProduct.price.toString())}
-                        </span>
-                      ) : (
-                        <span className="inline-flex rounded-lg bg-white px-3 py-2 text-sm font-black uppercase tracking-wide text-blue-700 shadow-sm ring-1 ring-blue-100">
-                          {t.priceOnRequestShort[language]}
-                        </span>
-                      )}
-                      {hasWholesalePrice(selectedProduct) && selectedProduct.price != null && (
-                        <div className="mt-2">
-                          <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                            {t.normalPrice[language]}
+                        {hasWholesalePrice(selectedProduct) ? (
+                          <span className="text-2xl font-black text-emerald-600 sm:text-3xl">
+                            {formatUsdPrice(selectedProduct.wholesalePriceUsd!)}
                           </span>
-                          <span className="text-base font-black text-slate-600">
-                            {formatKztPrice(selectedProduct.price.toString())}
+                        ) : (
+                          <span className="text-2xl font-black text-slate-900 sm:text-3xl">
+                            {formatKztPrice(selectedProduct.price!.toString())}
                           </span>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                        {hasWholesalePrice(selectedProduct) && selectedProduct.price != null && (
+                          <div className="mt-2">
+                            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                              {t.normalPrice[language]}
+                            </span>
+                            <span className="text-base font-black text-slate-600">
+                              {formatKztPrice(selectedProduct.price.toString())}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {selectedProduct.inStock === false ? (
                       <div className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl bg-gray-300 px-6 text-sm font-black text-gray-500 sm:w-auto">
                         {t.outOfStock[language]}
@@ -1886,11 +1886,7 @@ const App: React.FC = () => {
                           <span className="text-sm font-black text-slate-900">
                             {formatKztPrice(product.price)}
                           </span>
-                        ) : (
-                          <span className="text-[10px] font-black uppercase text-blue-600">
-                            {t.priceOnRequestShort[language]}
-                          </span>
-                        )}
+                        ) : null}
                       </div>
                     </button>
                   );

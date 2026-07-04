@@ -94,28 +94,28 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Price badge and buy button live on the image (matching the printed
             Canva catalogue) so the card body stays short and more cards fit
             on screen. */}
-        <div className="absolute bottom-2 left-2 z-10 flex flex-col items-start gap-0.5">
-          {hasWholesalePrice ? (
-            <>
-              <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-sm font-black text-slate-900 shadow-md sm:text-base">
-                {formatUsdPrice(product.wholesalePriceUsd!)}
-              </span>
-              {product.price != null ? (
-                <span className="inline-flex rounded-md bg-white/85 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 line-through shadow-sm backdrop-blur-sm">
-                  {formatKztPrice(product.price.toString())}
+        {/* No badge at all when there is no visible price — clients without a
+            wholesale code just see the product. */}
+        {(hasWholesalePrice || product.price != null) && (
+          <div className="absolute bottom-2 left-2 z-10 flex flex-col items-start gap-0.5">
+            {hasWholesalePrice ? (
+              <>
+                <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-sm font-black text-slate-900 shadow-md sm:text-base">
+                  {formatUsdPrice(product.wholesalePriceUsd!)}
                 </span>
-              ) : null}
-            </>
-          ) : product.price != null ? (
-            <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-sm font-black text-slate-900 shadow-md sm:text-base">
-              {formatKztPrice(product.price.toString())}
-            </span>
-          ) : (
-            <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-900 shadow-md">
-              {translations.priceOnRequestShort[language]}
-            </span>
-          )}
-        </div>
+                {product.price != null ? (
+                  <span className="inline-flex rounded-md bg-white/85 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 line-through shadow-sm backdrop-blur-sm">
+                    {formatKztPrice(product.price.toString())}
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-sm font-black text-slate-900 shadow-md sm:text-base">
+                {formatKztPrice(product.price!.toString())}
+              </span>
+            )}
+          </div>
+        )}
 
         {onAddToBasket ? (
           <button
