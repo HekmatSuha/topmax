@@ -118,6 +118,10 @@ const App: React.FC = () => {
   const sheetCameraInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef(0);
   const isFirstFilterSync = useRef(true);
+  // True while the open product card owns a history entry we pushed ourselves.
+  // Browsing from card to card replaces that single entry, so the back button
+  // always returns to the catalogue instead of replaying every viewed product.
+  const productEntryPushed = useRef(false);
   const lastDataLoad = useRef(Date.now());
   // Serialized snapshots of the last fetched data, so background refreshes can
   // skip the state update (and the re-render) when nothing changed server-side.
@@ -161,12 +165,25 @@ const App: React.FC = () => {
     setSelectedProduct(product);
     if (product) {
       const url = new URL(window.location.href);
+      const cardAlreadyOpen = url.searchParams.has('product');
       url.searchParams.set('product', String(product.id));
-      window.history.pushState({ productId: product.id }, '', url.toString());
+      if (cardAlreadyOpen) {
+        window.history.replaceState({ productId: product.id }, '', url.toString());
+      } else {
+        window.history.pushState({ productId: product.id }, '', url.toString());
+        productEntryPushed.current = true;
+      }
+    } else if (productEntryPushed.current) {
+      // Consume the entry we pushed so closing behaves exactly like the back
+      // button; the popstate handler restores the catalogue URL and state.
+      productEntryPushed.current = false;
+      window.history.back();
     } else {
+      // Deep link (?product=...) — there is no entry of ours to pop, so just
+      // strip the param in place.
       const url = new URL(window.location.href);
       url.searchParams.delete('product');
-      window.history.pushState({}, '', url.toString());
+      window.history.replaceState({}, '', url.toString());
     }
   };
 
@@ -269,6 +286,9 @@ const App: React.FC = () => {
       const params = new URLSearchParams(window.location.search);
       setFilter(params.get('category') || 'All');
       const id = params.get('product');
+      // Landing on a product entry (forward button) means there is an entry to
+      // pop again on close; landing anywhere else means it was consumed.
+      productEntryPushed.current = !!id;
       if (id) {
         openProductById(id, products);
       } else {
