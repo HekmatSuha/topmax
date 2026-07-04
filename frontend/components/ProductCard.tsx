@@ -91,9 +91,48 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/18 to-transparent" />
 
+        {/* Price badge and buy button live on the image (matching the printed
+            Canva catalogue) so the card body stays short and more cards fit
+            on screen. */}
+        <div className="absolute bottom-2 left-2 z-10 flex flex-col items-start gap-0.5">
+          {hasWholesalePrice ? (
+            <>
+              <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-sm font-black text-slate-900 shadow-md sm:text-base">
+                {formatUsdPrice(product.wholesalePriceUsd!)}
+              </span>
+              {product.price != null ? (
+                <span className="inline-flex rounded-md bg-white/85 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 line-through shadow-sm backdrop-blur-sm">
+                  {formatKztPrice(product.price.toString())}
+                </span>
+              ) : null}
+            </>
+          ) : product.price != null ? (
+            <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-sm font-black text-slate-900 shadow-md sm:text-base">
+              {formatKztPrice(product.price.toString())}
+            </span>
+          ) : (
+            <span className="inline-flex rounded-xl bg-amber-300 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-900 shadow-md">
+              {translations.priceOnRequestShort[language]}
+            </span>
+          )}
+        </div>
+
+        {onAddToBasket ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onAddToBasket(product); }}
+            disabled={outOfStock}
+            aria-label={translations.buy[language]}
+            className="absolute bottom-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-slate-950/90 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300/80 disabled:text-slate-500"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </button>
+        ) : null}
 
         {slideshowImages.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/85 px-1.5 py-1 shadow-sm backdrop-blur-sm sm:bottom-3 sm:gap-1.5 sm:px-2">
+          <div className="absolute top-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/85 px-1.5 py-1 shadow-sm backdrop-blur-sm sm:top-3 sm:gap-1.5 sm:px-2">
             {slideshowImages.map((_, index) => (
               <span
                 key={index}
@@ -152,7 +191,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {productName}
         </h3>
 
-        <div className="mb-1.5 flex flex-wrap items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-black">
             {product.itemCode}
           </span>
@@ -160,46 +199,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <span className="rounded-md bg-slate-50 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-black">
               {product.dimensions}
             </span>
-          ) : null}
-        </div>
-
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
-          <div className="min-w-0 flex-1">
-            {hasWholesalePrice ? (
-              <div className="flex flex-col leading-tight">
-                <span className="truncate text-sm font-black text-emerald-600 sm:text-base">
-                  {formatUsdPrice(product.wholesalePriceUsd!)}
-                </span>
-                {product.price != null ? (
-                  <span className="truncate text-[10px] font-bold text-slate-400 line-through">
-                    {formatKztPrice(product.price.toString())}
-                  </span>
-                ) : null}
-              </div>
-            ) : product.price != null ? (
-              <span className="block truncate text-sm font-black text-slate-950 sm:text-base">
-                {formatKztPrice(product.price.toString())}
-              </span>
-            ) : (
-              <span className="inline-flex rounded-md bg-blue-50 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-blue-700">
-                {translations.priceOnRequestShort[language]}
-              </span>
-            )}
-          </div>
-
-          {onAddToBasket ? (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onAddToBasket(product); }}
-              disabled={outOfStock}
-              aria-label={translations.buy[language]}
-              className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-slate-950 px-2.5 text-[10px] font-black text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 sm:text-[11px]"
-            >
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              <span className="truncate">{translations.buy[language]}</span>
-            </button>
           ) : null}
         </div>
       </div>

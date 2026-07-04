@@ -1354,7 +1354,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100">
+    // #EDE9E1: warm cream matching the printed Canva catalogue
+    <div className="min-h-screen flex flex-col bg-[#EDE9E1]">
       <Navbar
         onNavigate={handleNavigate}
         currentPage={currentPage}
