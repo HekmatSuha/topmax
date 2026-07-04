@@ -119,6 +119,10 @@ const App: React.FC = () => {
   const touchStartX = useRef(0);
   const isFirstFilterSync = useRef(true);
   const lastDataLoad = useRef(Date.now());
+  // Serialized snapshots of the last fetched data, so background refreshes can
+  // skip the state update (and the re-render) when nothing changed server-side.
+  const lastProductsJson = useRef('');
+  const lastCategoriesJson = useRef('');
 
   const t = translations;
 
@@ -197,8 +201,11 @@ const App: React.FC = () => {
     });
   };
 
-  const loadProducts = () => {
-    setIsProductsLoading(true);
+  // silent: refresh in the background — keep the current catalogue on screen
+  // (no loading state), swap the data in only if it actually changed, and on
+  // failure keep showing the stale data instead of an error.
+  const loadProducts = ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setIsProductsLoading(true);
     fetch(`${BACKEND_BASE_URL}/api/products/`, { credentials: 'include' })
       .then(res => {
         if (!res.ok) throw new Error(`Products request failed: ${res.status}`);
@@ -217,18 +224,23 @@ const App: React.FC = () => {
             color: img.color ? normalizeColorKey(img.color) : img.color,
           })),
         }));
-        setProducts(normalizedProducts);
-        setProductsError('');
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('product');
-        if (id) openProductById(id, normalizedProducts);
+        const serialized = JSON.stringify(normalizedProducts);
+        const changed = serialized !== lastProductsJson.current;
+        lastProductsJson.current = serialized;
+        if (!silent || changed) {
+          setProducts(normalizedProducts);
+          setProductsError('');
+          const params = new URLSearchParams(window.location.search);
+          const id = params.get('product');
+          if (id) openProductById(id, normalizedProducts);
+        }
       })
       .catch(err => {
         console.error('Failed to load products:', err);
-        setProductsError('Failed to load products from backend.');
+        if (!silent) setProductsError('Failed to load products from backend.');
       })
       .finally(() => {
-        setIsProductsLoading(false);
+        if (!silent) setIsProductsLoading(false);
       });
   };
 
@@ -239,9 +251,13 @@ const App: React.FC = () => {
         return res.json();
       })
       .then(data => {
-        setCategories((data.categories || []).sort(
+        const sorted = (data.categories || []).sort(
           (a: Category, b: Category) => a.sortOrder - b.sortOrder
-        ));
+        );
+        const serialized = JSON.stringify(sorted);
+        if (serialized === lastCategoriesJson.current) return;
+        lastCategoriesJson.current = serialized;
+        setCategories(sorted);
       })
       .catch(err => {
         console.error('Failed to load categories:', err);
@@ -379,6 +395,8 @@ const App: React.FC = () => {
   // Restoring a tab from bfcache (pageshow.persisted) or switching back to a
   // backgrounded tab does NOT remount React, so the mount effect above never
   // re-runs. Without this, a reopened tab would show stale products/categories.
+  // The refresh is silent (stale-while-revalidate): the current catalogue stays
+  // on screen and the UI only updates if the server data actually changed.
   useEffect(() => {
     // Avoid hammering the backend on rapid tab switches: only refresh if the
     // data is older than this threshold.
@@ -387,7 +405,7 @@ const App: React.FC = () => {
     const refreshIfStale = () => {
       if (Date.now() - lastDataLoad.current < STALE_AFTER_MS) return;
       lastDataLoad.current = Date.now();
-      loadProducts();
+      loadProducts({ silent: true });
       loadCategories();
     };
 
@@ -1200,7 +1218,7 @@ const App: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                 </svg>
                 <p className="text-red-500 text-lg font-bold mb-4">{productsError}</p>
-                <button onClick={loadProducts} className="rounded-xl bg-red-50 px-6 py-2.5 text-sm font-black text-red-600 hover:bg-red-100 transition-colors">
+                <button onClick={() => loadProducts()} className="rounded-xl bg-red-50 px-6 py-2.5 text-sm font-black text-red-600 hover:bg-red-100 transition-colors">
                   {t.tryAgain[language]}
                 </button>
               </div>
