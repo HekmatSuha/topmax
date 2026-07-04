@@ -24,6 +24,11 @@ type VisualSearchResult = {
 };
 
 const normalizeColorKey = (colorKey: string) => colorKey.trim().toLowerCase().replace(/\s+/g, '-');
+
+const parsePageKey = (value: string | null): PageKey =>
+  value === 'contact' || value === 'basket' || value === 'favorites' || value === 'profile'
+    ? value
+    : 'home';
 const SEARCH_LANGUAGES: Language[] = ['en', 'ru', 'kk'];
 
 const normalizeSearchText = (value: unknown) =>
@@ -75,7 +80,10 @@ const inferFinishFromRgb = (color: { r: number; g: number; b: number }) => {
 
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('ru');
-  const [currentPage, setCurrentPage] = useState<PageKey>('home');
+  const [currentPage, setCurrentPage] = useState<PageKey>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return parsePageKey(params.get('page'));
+  });
   const [filter, setFilter] = useState<CategoryKey>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('category') || 'All';
@@ -122,6 +130,14 @@ const App: React.FC = () => {
   // Browsing from card to card replaces that single entry, so the back button
   // always returns to the catalogue instead of replaying every viewed product.
   const productEntryPushed = useRef(false);
+  // Same idea for bottom-nav pages (basket/favorites/profile/contact): the
+  // first hop away from the catalogue pushes one history entry, further hops
+  // between pages replace it, so the back button always returns to the
+  // catalogue in a single step.
+  const pageEntryPushed = useRef(false);
+  // And for the mobile search sheet: opening it pushes an entry so the back
+  // button closes the sheet instead of leaving the site.
+  const sheetEntryPushed = useRef(false);
   const lastDataLoad = useRef(Date.now());
   // Serialized snapshots of the last fetched data, so background refreshes can
   // skip the state update (and the re-render) when nothing changed server-side.
@@ -285,6 +301,11 @@ const App: React.FC = () => {
     const onPopState = (e: PopStateEvent) => {
       const params = new URLSearchParams(window.location.search);
       setFilter(params.get('category') || 'All');
+      const page = parsePageKey(params.get('page'));
+      setCurrentPage(page);
+      // Landing on a page entry (forward button) means there is an entry to
+      // pop again when returning home; landing on home means it was consumed.
+      pageEntryPushed.current = page !== 'home';
       const id = params.get('product');
       // Landing on a product entry (forward button) means there is an entry to
       // pop again on close; landing anywhere else means it was consumed.
@@ -294,10 +315,20 @@ const App: React.FC = () => {
       } else {
         setSelectedProduct(null);
       }
+      // The search sheet's history entry is marked via state, not the URL.
+      const sheetOpen = Boolean(e.state && e.state.searchSheet);
+      sheetEntryPushed.current = sheetOpen;
+      if (sheetOpen) {
+        setShowSearchSheet(true);
+      } else if (showSearchSheet) {
+        setShowSearchSheet(false);
+        setSearchQuery('');
+        resetVisualSearch();
+      }
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [products]);
+  }, [products, showSearchSheet]);
 
   // Opening a category renders it as its own page (the hero and the category
   // grid are hidden), so every category change should start at the top of the
@@ -625,10 +656,52 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (page: string) => {
-    if (page === 'home' || page === 'contact' || page === 'basket' || page === 'favorites' || page === 'profile') {
-      setCurrentPage(page);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (page !== 'home' && page !== 'contact' && page !== 'basket' && page !== 'favorites' && page !== 'profile') {
+      return;
     }
+
+    // A page takes over the whole screen, so close any open product card. Its
+    // history entry (if we pushed one) is reused for the page below instead of
+    // being stacked on, so back never replays the product.
+    const replacingProductEntry = productEntryPushed.current;
+    productEntryPushed.current = false;
+    if (selectedProduct) setSelectedProduct(null);
+    // Same for the search sheet overlay (e.g. a product opened from search
+    // results): hide it so it doesn't cover the destination page.
+    if (showSearchSheet) {
+      setShowSearchSheet(false);
+      setSearchQuery('');
+      resetVisualSearch();
+      sheetEntryPushed.current = false;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('product');
+    setCurrentPage(page);
+
+    if (page === 'home') {
+      const entriesToPop = (pageEntryPushed.current ? 1 : 0) + (replacingProductEntry ? 1 : 0);
+      if (entriesToPop > 0) {
+        // Consume the entries we pushed so returning to the catalogue behaves
+        // exactly like the back button; popstate restores the URL and state.
+        pageEntryPushed.current = false;
+        window.history.go(-entriesToPop);
+      } else {
+        // Deep link (?page=...) — nothing of ours to pop, strip in place.
+        url.searchParams.delete('page');
+        window.history.replaceState({ ...window.history.state, page: 'home' }, '', url.toString());
+      }
+    } else {
+      url.searchParams.set('page', page);
+      if (pageEntryPushed.current || replacingProductEntry) {
+        window.history.replaceState({ ...window.history.state, page }, '', url.toString());
+      } else {
+        window.history.pushState({ ...window.history.state, page }, '', url.toString());
+      }
+      pageEntryPushed.current = true;
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCatalogTab = () => {
@@ -641,9 +714,21 @@ const App: React.FC = () => {
 
   const handleSearchTab = () => {
     setShowSearchSheet(true);
+    if (!sheetEntryPushed.current) {
+      // Push an entry (same URL, flagged via state) so the hardware/browser
+      // back button closes the sheet and returns to the page underneath.
+      window.history.pushState({ ...window.history.state, searchSheet: true }, '', window.location.href);
+      sheetEntryPushed.current = true;
+    }
   };
 
   const closeSearchSheet = () => {
+    if (sheetEntryPushed.current) {
+      // Consume the entry we pushed; the popstate handler closes the sheet
+      // and clears the query so closing behaves exactly like the back button.
+      window.history.back();
+      return;
+    }
     setShowSearchSheet(false);
     setSearchQuery('');
     resetVisualSearch();
@@ -960,7 +1045,7 @@ const App: React.FC = () => {
     addToast(
       `${product.name[language] || product.name.en} ${t.addedToBasketToast[language]}`,
       'success',
-      { label: t.viewBasket[language], onClick: () => { handleSelectProduct(null); setCurrentPage('basket'); } }
+      { label: t.viewBasket[language], onClick: () => handleNavigate('basket') }
     );
   };
 
@@ -1344,7 +1429,7 @@ const App: React.FC = () => {
             user={user}
             onRemove={(id, color) => setBasket(b => b.filter(i => !(i.id === id && i.selectedColor === color)))} 
             onUpdateQuantity={(id, color, q) => setBasket(b => b.map(i => (i.id === id && i.selectedColor === color) ? {...i, quantity: q} : i))} 
-            onContinueShopping={() => setCurrentPage('home')}
+            onContinueShopping={() => handleNavigate('home')}
             onRequestLogin={() => setShowAuth(true)}
           />
         );
