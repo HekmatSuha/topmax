@@ -41,6 +41,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // Only the cover image is fetched up front; the rest of the slideshow
   // loads on first hover to keep catalog bandwidth down.
   const [preloadAllImages, setPreloadAllImages] = useState(false);
+  // Tracks which slideshow frames have finished decoding so we can fade
+  // them in instead of popping in abruptly while the grid scrolls.
+  const [loadedImageKeys, setLoadedImageKeys] = useState<Set<string>>(new Set());
+  const handleImageLoad = (key: string) => {
+    setLoadedImageKeys(prev => (prev.has(key) ? prev : new Set(prev).add(key)));
+  };
   const formatUsdPrice = (price: string) =>
     `$${Number(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const formatKztPrice = (price: string | number) =>
@@ -62,7 +68,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div
-      className={`group flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-slate-200/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] ${
+      className={`catalog-card group flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-slate-200/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] ${
         outOfStock ? 'opacity-75' : ''
       }`}
       onMouseEnter={() => {
@@ -75,19 +81,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }}
     >
       <div className="relative aspect-square overflow-hidden bg-slate-100 sm:h-44 sm:aspect-auto cursor-pointer" onClick={() => onInquire(product)}>
-        {slideshowImages.map((imageUrl, index) => (preloadAllImages || index === activeImageIndex) && (
-          <img
-            key={`${imageUrl}-${index}`}
-            src={imageUrl}
-            alt={index === activeImageIndex ? productName : ''}
-            aria-hidden={index !== activeImageIndex}
-            loading="lazy"
-            decoding="async"
-            className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
-              index === activeImageIndex ? 'opacity-100' : 'opacity-0'
-            } ${outOfStock ? 'grayscale-[40%]' : ''}`}
-          />
-        ))}
+        {slideshowImages.map((imageUrl, index) => {
+          if (!(preloadAllImages || index === activeImageIndex)) return null;
+          const key = `${imageUrl}-${index}`;
+          const isActive = index === activeImageIndex;
+          const isLoaded = loadedImageKeys.has(key);
+          return (
+            <img
+              key={key}
+              src={imageUrl}
+              alt={isActive ? productName : ''}
+              aria-hidden={!isActive}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => handleImageLoad(key)}
+              className={`absolute inset-0 h-full w-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+                isActive && isLoaded ? 'opacity-100' : 'opacity-0'
+              } ${outOfStock ? 'grayscale-[40%]' : ''}`}
+            />
+          );
+        })}
+        {!loadedImageKeys.has(`${slideshowImages[activeImageIndex]}-${activeImageIndex}`) && (
+          <div className="absolute inset-0 animate-pulse bg-slate-100" aria-hidden="true" />
+        )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/18 to-transparent" />
 
