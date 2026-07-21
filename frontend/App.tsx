@@ -1568,7 +1568,7 @@ const App: React.FC = () => {
                      <img
                        src={visibleImageUrls[activeImageIndex] || PLACEHOLDER_IMAGE}
                        alt={getLocalizedText(selectedProduct.name, selectedProduct.itemCode)}
-                       loading="lazy"
+                       fetchPriority="high"
                        decoding="async"
                        className="h-full max-h-[520px] w-full object-contain p-3 transition-all duration-500 sm:p-5"
                      />

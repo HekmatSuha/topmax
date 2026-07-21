@@ -92,10 +92,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
               src={imageUrl}
               alt={isActive ? productName : ''}
               aria-hidden={!isActive}
-              loading="lazy"
               decoding="async"
               onLoad={() => handleImageLoad(key)}
-              className={`absolute inset-0 h-full w-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+              className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-150 ease-out group-hover:scale-105 group-hover:duration-500 ${
                 isActive && isLoaded ? 'opacity-100' : 'opacity-0'
               } ${outOfStock ? 'grayscale-[40%]' : ''}`}
             />
