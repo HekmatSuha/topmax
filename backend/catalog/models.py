@@ -37,6 +37,14 @@ class Category(models.Model):
 
 class Product(models.Model):
     item_code = models.CharField(max_length=64, unique=True)
+    moysklad_id = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text="Linked MoySklad product UUID. Stock is auto-synced for linked products.",
+    )
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,

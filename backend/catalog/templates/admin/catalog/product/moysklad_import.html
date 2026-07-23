@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p>
+    <a href="{% url 'admin:catalog_product_changelist' %}">&larr; Back to products</a>
+  </p>
+
+  <form method="get" style="margin-bottom: 20px;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search MoySklad by name, article or code&hellip;" style="width: 320px;">
+    <input type="submit" value="Search" class="default">
+  </form>
+
+  {% if error %}
+    <p class="errornote">{{ error }}</p>
+  {% endif %}
+
+  {% if query and not results and not error %}
+    <p>No matches found in MoySklad for &ldquo;{{ query }}&rdquo;.</p>
+  {% endif %}
+
+  {% if results %}
+  <table style="width:100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:6px;">Name</th>
+        <th style="text-align:left; padding:6px;">Article / Code</th>
+        <th style="text-align:left; padding:6px;">Qty in MoySklad</th>
+        <th style="text-align:left; padding:6px;">Category to import into</th>
+        <th style="padding:6px;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in results %}
+      <tr style="border-top: 1px solid #ddd;">
+        <td style="padding:6px;">{{ r.name }}</td>
+        <td style="padding:6px;">{{ r.article|default:r.code|default:"—" }}</td>
+        <td style="padding:6px;">{{ r.quantity|default:"—" }}</td>
+        <td style="padding:6px;">
+          <select name="category" form="import-form-{{ forloop.counter }}" required>
+            <option value="">Select&hellip;</option>
+            {% for c in categories %}
+            <option value="{{ c.slug }}">{{ c.name.en|default:c.slug }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td style="padding:6px;">
+          <form id="import-form-{{ forloop.counter }}" method="post" action="{% url 'admin:catalog_product_moysklad_do_import' %}">
+            {% csrf_token %}
+            <input type="hidden" name="moysklad_id" value="{{ r.id }}">
+            <input type="hidden" name="name" value="{{ r.name }}">
+            <input type="hidden" name="code" value="{{ r.article|default:r.code }}">
+            <button type="submit" class="default">Import</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

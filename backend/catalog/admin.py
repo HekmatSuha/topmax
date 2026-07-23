@@ -2,7 +2,9 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.urls import path
 from django.utils.html import format_html
+from .admin_views import moysklad_do_import, moysklad_import_view
 from .models import Category, Product, ProductImage, WholesaleCustomer, WholesaleDevice, SiteSettings, default_warranty
 
 LANGUAGES = ("en", "ru", "kk")
@@ -169,14 +171,32 @@ class ProductImageInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
-    list_display = ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "in_stock", "is_new", "image_count", "updated_at")
-    search_fields = ("item_code", "category__slug")
+    list_display = ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "in_stock", "is_new", "image_count", "moysklad_id", "updated_at")
+    search_fields = ("item_code", "category__slug", "moysklad_id")
     list_filter = ("category", "in_stock")
     inlines = [ProductImageInline]
+    change_list_template = "admin/catalog/product/change_list.html"
+    readonly_fields = ("moysklad_id",)
+
+    def get_urls(self):
+        custom = [
+            path(
+                "moysklad-import/",
+                self.admin_site.admin_view(moysklad_import_view),
+                name="catalog_product_moysklad_import",
+            ),
+            path(
+                "moysklad-import/do/",
+                self.admin_site.admin_view(moysklad_do_import),
+                name="catalog_product_moysklad_do_import",
+            ),
+        ]
+        return custom + super().get_urls()
 
     fieldsets = (
         (None, {
-            "fields": ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "dimensions", "in_stock", "is_new"),
+            "fields": ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "dimensions", "in_stock", "is_new", "moysklad_id"),
+            "description": "If moysklad_id is set, in_stock is overwritten automatically by the stock sync job — edit everything else freely.",
         }),
         ("Name", {
             "fields": ("name_en", "name_ru", "name_kk"),

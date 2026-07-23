@@ -69,6 +69,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+# MoySklad integration token (see backend/.env). Kept server-side only.
+MOYSKLAD_TOKEN = os.environ.get("MOYSKLAD_TOKEN", "")
+
 ROOT_URLCONF = "core.urls"
 
 # Frontend dist directory (built React app)
