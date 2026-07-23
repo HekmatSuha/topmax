@@ -6,6 +6,13 @@
     <a href="{% url 'admin:catalog_product_changelist' %}">&larr; Back to products</a>
   </p>
 
+  {% if mode == "link" %}
+    <p>Linking existing product <strong>{{ target_product.item_code }}</strong>
+      ({{ target_product.name.en|default:target_product.item_code }}) to MoySklad.
+      This only sets the MoySklad link and syncs its current stock — everything else on the
+      product (price, translations, images) stays exactly as it is.</p>
+  {% endif %}
+
   <form method="get" style="margin-bottom: 20px;">
     <input type="text" name="q" value="{{ query }}" placeholder="Search MoySklad by name, article or code&hellip;" style="width: 320px;">
     <input type="submit" value="Search" class="default">
@@ -25,9 +32,11 @@
       <tr>
         <th style="text-align:left; padding:6px;">Name</th>
         <th style="text-align:left; padding:6px;">Article / Code</th>
-        <th style="text-align:left; padding:6px;">Sale price</th>
+        <th style="text-align:left; padding:6px;">Sale price (→ wholesale USD)</th>
         <th style="text-align:left; padding:6px;">Qty in MoySklad</th>
+        {% if mode == "import" %}
         <th style="text-align:left; padding:6px;">Category to import into</th>
+        {% endif %}
         <th style="padding:6px;"></th>
       </tr>
     </thead>
@@ -38,16 +47,25 @@
         <td style="padding:6px;">{{ r.article|default:r.code|default:"—" }}</td>
         <td style="padding:6px;">{{ r.price|default:"—" }}</td>
         <td style="padding:6px;">{{ r.quantity|default:"—" }}</td>
+        {% if mode == "import" %}
         <td style="padding:6px;">
-          <select name="category" form="import-form-{{ forloop.counter }}" required>
+          <select name="category" form="ms-form-{{ forloop.counter }}" required>
             <option value="">Select&hellip;</option>
             {% for c in categories %}
             <option value="{{ c.slug }}">{{ c.name.en|default:c.slug }}</option>
             {% endfor %}
           </select>
         </td>
+        {% endif %}
         <td style="padding:6px;">
-          <form id="import-form-{{ forloop.counter }}" method="post" action="{% url 'admin:catalog_product_moysklad_do_import' %}">
+          {% if mode == "link" %}
+          <form id="ms-form-{{ forloop.counter }}" method="post" action="{% url 'admin:catalog_product_moysklad_do_link' target_product.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="moysklad_id" value="{{ r.id }}">
+            <button type="submit" class="default">Link</button>
+          </form>
+          {% else %}
+          <form id="ms-form-{{ forloop.counter }}" method="post" action="{% url 'admin:catalog_product_moysklad_do_import' %}">
             {% csrf_token %}
             <input type="hidden" name="moysklad_id" value="{{ r.id }}">
             <input type="hidden" name="name" value="{{ r.name }}">
@@ -55,6 +73,7 @@
             <input type="hidden" name="price" value="{{ r.price|default:0 }}">
             <button type="submit" class="default">Import</button>
           </form>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

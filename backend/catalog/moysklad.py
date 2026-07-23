@@ -59,14 +59,12 @@ def search_products(query, limit=20):
 
     results = []
     for row in rows:
-        sale_prices = row.get("salePrices") or []
-        price = sale_prices[0]["value"] / 100 if sale_prices else None
         results.append({
             "id": row["id"],
             "name": row.get("name", ""),
             "code": row.get("code", ""),
             "article": row.get("article", ""),
-            "price": price,
+            "price": _row_price(row),
             "quantity": stock_by_id.get(row["id"], 0),
             "hasImages": (row.get("images", {}).get("meta", {}).get("size") or 0) > 0,
         })
@@ -97,8 +95,13 @@ def download_image(download_href):
     return resp.content
 
 
-def get_stock_by_product_id(moysklad_id):
-    """Current stock quantity for a single product, or None if not found."""
+def _row_price(row):
+    sale_prices = row.get("salePrices") or []
+    return sale_prices[0]["value"] / 100 if sale_prices else None
+
+
+def get_stock_and_price_by_product_id(moysklad_id):
+    """Return (stock_quantity, price) for a single product, or (None, None) if not found."""
     data = _get("/entity/assortment", params={
         "filter": f"id={moysklad_id}",
         "stockMode": "all",
@@ -106,16 +109,22 @@ def get_stock_by_product_id(moysklad_id):
     })
     rows = data.get("rows", [])
     if rows:
-        return rows[0].get("stock", 0)
-    return None
+        return rows[0].get("stock", 0), _row_price(rows[0])
+    return None, None
 
 
-def get_all_stock():
-    """Return {moysklad_product_id: stock_quantity} for every assortment row with stock data.
+def get_stock_by_product_id(moysklad_id):
+    """Current stock quantity for a single product, or None if not found."""
+    stock, _ = get_stock_and_price_by_product_id(moysklad_id)
+    return stock
+
+
+def get_all_stock_and_prices():
+    """Return {moysklad_product_id: (stock_quantity, price)} for every assortment row.
 
     Paginates /entity/assortment (stockMode=all) via meta.nextHref.
     """
-    stock_by_id = {}
+    data_by_id = {}
     path = "/entity/assortment"
     params = {"limit": 1000, "stockMode": "all"}
     while True:
@@ -123,10 +132,10 @@ def get_all_stock():
         for row in data.get("rows", []):
             product_id = row.get("id")
             if product_id:
-                stock_by_id[product_id] = row.get("stock", 0)
+                data_by_id[product_id] = (row.get("stock", 0), _row_price(row))
         next_href = (data.get("meta") or {}).get("nextHref")
         if not next_href:
             break
         path = next_href.replace(BASE_URL, "")
         params = None
-    return stock_by_id
+    return data_by_id

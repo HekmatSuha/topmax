@@ -4,7 +4,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.urls import path
 from django.utils.html import format_html
-from .admin_views import moysklad_do_import, moysklad_import_view
+from .admin_views import (
+    moysklad_do_import,
+    moysklad_do_link,
+    moysklad_import_view,
+    moysklad_link_view,
+)
 from .models import Category, Product, ProductImage, WholesaleCustomer, WholesaleDevice, SiteSettings, default_warranty
 
 LANGUAGES = ("en", "ru", "kk")
@@ -176,6 +181,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("category", "in_stock")
     inlines = [ProductImageInline]
     change_list_template = "admin/catalog/product/change_list.html"
+    change_form_template = "admin/catalog/product/change_form.html"
     readonly_fields = ("moysklad_id",)
 
     def get_urls(self):
@@ -189,6 +195,16 @@ class ProductAdmin(admin.ModelAdmin):
                 "moysklad-import/do/",
                 self.admin_site.admin_view(moysklad_do_import),
                 name="catalog_product_moysklad_do_import",
+            ),
+            path(
+                "<int:object_id>/moysklad-link/",
+                self.admin_site.admin_view(moysklad_link_view),
+                name="catalog_product_moysklad_link",
+            ),
+            path(
+                "<int:object_id>/moysklad-link/do/",
+                self.admin_site.admin_view(moysklad_do_link),
+                name="catalog_product_moysklad_do_link",
             ),
         ]
         return custom + super().get_urls()
