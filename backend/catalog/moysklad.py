@@ -36,10 +36,19 @@ def _get(path, params=None):
 
 
 def search_products(query, limit=20):
-    """Search products/variants by name, article or code. Returns a simplified list."""
-    data = _get("/entity/product", params={"search": query, "limit": limit})
+    """Search products by name, article or code. Returns a simplified list.
+
+    Uses /entity/assortment with stockMode=all rather than /entity/product —
+    the plain product endpoint never includes stock quantity, only assortment
+    does (and only when stockMode is explicitly requested). Results are
+    filtered down to plain products (skipping variants/bundles/services) since
+    the rest of this client (images, single-product stock) assumes a product id.
+    """
+    data = _get("/entity/assortment", params={"search": query, "limit": limit, "stockMode": "all"})
     results = []
     for row in data.get("rows", []):
+        if (row.get("meta") or {}).get("type") != "product":
+            continue
         sale_prices = row.get("salePrices") or []
         price = sale_prices[0]["value"] / 100 if sale_prices else None
         results.append({
@@ -48,7 +57,7 @@ def search_products(query, limit=20):
             "code": row.get("code", ""),
             "article": row.get("article", ""),
             "price": price,
-            "quantity": row.get("quantity"),
+            "quantity": row.get("stock", 0),
             "hasImages": (row.get("images", {}).get("meta", {}).get("size") or 0) > 0,
         })
     return results
@@ -80,32 +89,32 @@ def download_image(download_href):
 
 def get_stock_by_product_id(moysklad_id):
     """Current stock quantity for a single product, or None if not found."""
-    data = _get("/report/stock/all/current", params={
-        "filter": f"product={BASE_URL}/entity/product/{moysklad_id}",
+    data = _get("/entity/assortment", params={
+        "filter": f"id={moysklad_id}",
+        "stockMode": "all",
+        "limit": 1,
     })
-    # This endpoint returns a flat list of {assortmentId, stockPercent, stock, ...}
-    if isinstance(data, list) and data:
-        return data[0].get("stock", 0)
+    rows = data.get("rows", [])
+    if rows:
+        return rows[0].get("stock", 0)
     return None
 
 
 def get_all_stock():
-    """Return {moysklad_product_id: stock_quantity} for every product with stock data.
+    """Return {moysklad_product_id: stock_quantity} for every assortment row with stock data.
 
-    Uses /report/stock/all which paginates via meta.nextHref; results are keyed
-    by the product id parsed out of each row's meta.href.
+    Paginates /entity/assortment (stockMode=all) via meta.nextHref.
     """
     stock_by_id = {}
-    path = "/report/stock/all"
-    params = {"limit": 1000}
+    path = "/entity/assortment"
+    params = {"limit": 1000, "stockMode": "all"}
     while True:
         data = _get(path, params=params)
-        for row in data.get("rows", data if isinstance(data, list) else []):
-            href = (row.get("meta") or {}).get("href", "")
-            product_id = href.rstrip("/").rsplit("/", 1)[-1] if href else None
+        for row in data.get("rows", []):
+            product_id = row.get("id")
             if product_id:
                 stock_by_id[product_id] = row.get("stock", 0)
-        next_href = (data.get("meta") or {}).get("nextHref") if isinstance(data, dict) else None
+        next_href = (data.get("meta") or {}).get("nextHref")
         if not next_href:
             break
         path = next_href.replace(BASE_URL, "")

@@ -25,6 +25,7 @@
       <tr>
         <th style="text-align:left; padding:6px;">Name</th>
         <th style="text-align:left; padding:6px;">Article / Code</th>
+        <th style="text-align:left; padding:6px;">Sale price</th>
         <th style="text-align:left; padding:6px;">Qty in MoySklad</th>
         <th style="text-align:left; padding:6px;">Category to import into</th>
         <th style="padding:6px;"></th>
@@ -35,6 +36,7 @@
       <tr style="border-top: 1px solid #ddd;">
         <td style="padding:6px;">{{ r.name }}</td>
         <td style="padding:6px;">{{ r.article|default:r.code|default:"—" }}</td>
+        <td style="padding:6px;">{{ r.price|default:"—" }}</td>
         <td style="padding:6px;">{{ r.quantity|default:"—" }}</td>
         <td style="padding:6px;">
           <select name="category" form="import-form-{{ forloop.counter }}" required>
@@ -50,6 +52,7 @@
             <input type="hidden" name="moysklad_id" value="{{ r.id }}">
             <input type="hidden" name="name" value="{{ r.name }}">
             <input type="hidden" name="code" value="{{ r.article|default:r.code }}">
+            <input type="hidden" name="price" value="{{ r.price|default:0 }}">
             <button type="submit" class="default">Import</button>
           </form>
         </td>

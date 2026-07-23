@@ -41,6 +41,10 @@ def moysklad_do_import(request):
     category_slug = request.POST.get("category", "").strip()
     name = request.POST.get("name", "").strip()
     code = request.POST.get("code", "").strip()
+    try:
+        price = round(float(request.POST.get("price", "0") or "0"))
+    except ValueError:
+        price = 0
 
     if not moysklad_id or not category_slug:
         messages.error(request, "Pick a category before importing.")
@@ -72,7 +76,7 @@ def moysklad_do_import(request):
         item_code=item_code,
         moysklad_id=moysklad_id,
         category=category,
-        price=0,
+        price=price,
         name={"en": name, "ru": name, "kk": name},
         description={"en": "", "ru": "", "kk": ""},
         features={"en": [], "ru": [], "kk": []},
