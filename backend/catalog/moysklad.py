@@ -38,17 +38,27 @@ def _get(path, params=None):
 def search_products(query, limit=20):
     """Search products by name, article or code. Returns a simplified list.
 
-    Uses /entity/assortment with stockMode=all rather than /entity/product —
-    the plain product endpoint never includes stock quantity, only assortment
-    does (and only when stockMode is explicitly requested). Results are
-    filtered down to plain products (skipping variants/bundles/services) since
-    the rest of this client (images, single-product stock) assumes a product id.
+    Search has to go through /entity/product — /entity/assortment silently
+    drops the `search` filter once `stockMode` is also set, returning an
+    unfiltered list instead. So we search products first, then fetch stock
+    for exactly those ids in one batched /entity/assortment call.
     """
-    data = _get("/entity/assortment", params={"search": query, "limit": limit, "stockMode": "all"})
+    data = _get("/entity/product", params={"search": query, "limit": limit})
+    rows = data.get("rows", [])
+
+    stock_by_id = {}
+    ids = [row["id"] for row in rows]
+    if ids:
+        stock_data = _get("/entity/assortment", params={
+            "filter": ";".join(f"id={pid}" for pid in ids),
+            "stockMode": "all",
+            "limit": len(ids),
+        })
+        for srow in stock_data.get("rows", []):
+            stock_by_id[srow.get("id")] = srow.get("stock", 0)
+
     results = []
-    for row in data.get("rows", []):
-        if (row.get("meta") or {}).get("type") != "product":
-            continue
+    for row in rows:
         sale_prices = row.get("salePrices") or []
         price = sale_prices[0]["value"] / 100 if sale_prices else None
         results.append({
@@ -57,7 +67,7 @@ def search_products(query, limit=20):
             "code": row.get("code", ""),
             "article": row.get("article", ""),
             "price": price,
-            "quantity": row.get("stock", 0),
+            "quantity": stock_by_id.get(row["id"], 0),
             "hasImages": (row.get("images", {}).get("meta", {}).get("size") or 0) > 0,
         })
     return results
