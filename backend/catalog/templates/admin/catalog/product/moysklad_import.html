@@ -27,9 +27,26 @@
   {% endif %}
 
   {% if results %}
+  {% if mode == "import" %}
+  <form id="ms-bulk-form" method="post" action="{% url 'admin:catalog_product_moysklad_do_import_bulk' %}" style="margin-bottom: 10px; padding: 10px; background: #f6f6f6; border: 1px solid #ddd;">
+    {% csrf_token %}
+    <label>Import selected into:
+      <select name="category" required>
+        <option value="">Select category&hellip;</option>
+        {% for c in categories %}
+        <option value="{{ c.slug }}">{{ c.name.en|default:c.slug }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="default">Import selected</button>
+  </form>
+  {% endif %}
   <table style="width:100%; border-collapse: collapse;">
     <thead>
       <tr>
+        {% if mode == "import" %}
+        <th style="padding:6px;"><input type="checkbox" id="ms-select-all"></th>
+        {% endif %}
         <th style="text-align:left; padding:6px;">Name</th>
         <th style="text-align:left; padding:6px;">Article / Code</th>
         <th style="text-align:left; padding:6px;">Sale price (→ wholesale USD)</th>
@@ -43,6 +60,14 @@
     <tbody>
       {% for r in results %}
       <tr style="border-top: 1px solid #ddd;">
+        {% if mode == "import" %}
+        <td style="padding:6px;">
+          <input type="checkbox" class="ms-bulk-checkbox" name="moysklad_id" value="{{ r.id }}" form="ms-bulk-form">
+          <input type="hidden" name="name__{{ r.id }}" value="{{ r.name }}" form="ms-bulk-form">
+          <input type="hidden" name="code__{{ r.id }}" value="{{ r.article|default:r.code }}" form="ms-bulk-form">
+          <input type="hidden" name="price__{{ r.id }}" value="{{ r.price|default:0 }}" form="ms-bulk-form">
+        </td>
+        {% endif %}
         <td style="padding:6px;">{{ r.name }}</td>
         <td style="padding:6px;">{{ r.article|default:r.code|default:"—" }}</td>
         <td style="padding:6px;">{{ r.price|default:"—" }}</td>
@@ -79,6 +104,15 @@
       {% endfor %}
     </tbody>
   </table>
+  {% if mode == "import" %}
+  <script>
+    document.getElementById("ms-select-all").addEventListener("change", function () {
+      document.querySelectorAll(".ms-bulk-checkbox").forEach(function (cb) {
+        cb.checked = this.checked;
+      }.bind(this));
+    });
+  </script>
+  {% endif %}
   {% endif %}
 </div>
 {% endblock %}

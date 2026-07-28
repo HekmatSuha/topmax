@@ -33,41 +33,18 @@ def moysklad_import_view(request):
     return render(request, "admin/catalog/product/moysklad_import.html", context)
 
 
-@staff_member_required
-def moysklad_do_import(request):
-    if request.method != "POST":
-        return redirect("admin:catalog_product_moysklad_import")
-
-    moysklad_id = request.POST.get("moysklad_id", "").strip()
-    category_slug = request.POST.get("category", "").strip()
-    name = request.POST.get("name", "").strip()
-    code = request.POST.get("code", "").strip()
-    try:
-        wholesale_price_usd = round(float(request.POST.get("price", "0") or "0"), 2)
-    except ValueError:
-        wholesale_price_usd = None
-
-    if not moysklad_id or not category_slug:
-        messages.error(request, "Pick a category before importing.")
-        return redirect("admin:catalog_product_moysklad_import")
-
-    existing = Product.objects.filter(moysklad_id=moysklad_id).first()
-    if existing:
-        messages.warning(request, "That MoySklad product is already linked here — opening it.")
-        return redirect("admin:catalog_product_change", existing.pk)
-
-    try:
-        category = Category.objects.get(slug=category_slug, is_active=True)
-    except Category.DoesNotExist:
-        messages.error(request, "Invalid category.")
-        return redirect("admin:catalog_product_moysklad_import")
-
+def _import_product(moysklad_id, category, name, code, fallback_price_usd):
+    """Create a Product linked to a MoySklad product id, pulling current stock,
+    wholesale price (falling back to fallback_price_usd if MoySklad has none)
+    and images. Shared by the single and bulk import views.
+    """
     item_code = code or f"MS-{moysklad_id[:8]}"
     base_code, n = item_code, 1
     while Product.objects.filter(item_code=item_code).exists():
         n += 1
         item_code = f"{base_code}-{n}"
 
+    wholesale_price_usd = fallback_price_usd
     try:
         stock_qty, fetched_price = moysklad.get_stock_and_price_by_product_id(moysklad_id)
         stock_qty = stock_qty or 0
@@ -107,12 +84,91 @@ def moysklad_do_import(request):
         )
         imported_images += 1
 
+    return product, imported_images
+
+
+@staff_member_required
+def moysklad_do_import(request):
+    if request.method != "POST":
+        return redirect("admin:catalog_product_moysklad_import")
+
+    moysklad_id = request.POST.get("moysklad_id", "").strip()
+    category_slug = request.POST.get("category", "").strip()
+    name = request.POST.get("name", "").strip()
+    code = request.POST.get("code", "").strip()
+    try:
+        wholesale_price_usd = round(float(request.POST.get("price", "0") or "0"), 2)
+    except ValueError:
+        wholesale_price_usd = None
+
+    if not moysklad_id or not category_slug:
+        messages.error(request, "Pick a category before importing.")
+        return redirect("admin:catalog_product_moysklad_import")
+
+    existing = Product.objects.filter(moysklad_id=moysklad_id).first()
+    if existing:
+        messages.warning(request, "That MoySklad product is already linked here — opening it.")
+        return redirect("admin:catalog_product_change", existing.pk)
+
+    try:
+        category = Category.objects.get(slug=category_slug, is_active=True)
+    except Category.DoesNotExist:
+        messages.error(request, "Invalid category.")
+        return redirect("admin:catalog_product_moysklad_import")
+
+    product, imported_images = _import_product(moysklad_id, category, name, code, wholesale_price_usd)
+
     messages.success(
         request,
         f"Imported '{name}' from MoySklad with {imported_images} image(s) and a wholesale price of "
-        f"{wholesale_price_usd} — now set the retail price, translations and anything else below.",
+        f"{product.wholesale_price_usd} — now set the retail price, translations and anything else below.",
     )
     return redirect("admin:catalog_product_change", product.pk)
+
+
+@staff_member_required
+def moysklad_do_import_bulk(request):
+    if request.method != "POST":
+        return redirect("admin:catalog_product_moysklad_import")
+
+    moysklad_ids = [mid.strip() for mid in request.POST.getlist("moysklad_id") if mid.strip()]
+    category_slug = request.POST.get("category", "").strip()
+
+    if not moysklad_ids:
+        messages.error(request, "Select at least one product to import.")
+        return redirect("admin:catalog_product_moysklad_import")
+
+    if not category_slug:
+        messages.error(request, "Pick a category before importing.")
+        return redirect("admin:catalog_product_moysklad_import")
+
+    try:
+        category = Category.objects.get(slug=category_slug, is_active=True)
+    except Category.DoesNotExist:
+        messages.error(request, "Invalid category.")
+        return redirect("admin:catalog_product_moysklad_import")
+
+    imported, skipped = 0, 0
+    for moysklad_id in moysklad_ids:
+        if Product.objects.filter(moysklad_id=moysklad_id).exists():
+            skipped += 1
+            continue
+
+        name = request.POST.get(f"name__{moysklad_id}", "").strip()
+        code = request.POST.get(f"code__{moysklad_id}", "").strip()
+        try:
+            wholesale_price_usd = round(float(request.POST.get(f"price__{moysklad_id}", "0") or "0"), 2)
+        except ValueError:
+            wholesale_price_usd = None
+
+        _import_product(moysklad_id, category, name, code, wholesale_price_usd)
+        imported += 1
+
+    if imported:
+        messages.success(request, f"Imported {imported} product(s) from MoySklad into '{category.name.get('en') or category.slug}'.")
+    if skipped:
+        messages.warning(request, f"Skipped {skipped} product(s) — already linked to MoySklad.")
+    return redirect("admin:catalog_product_moysklad_import")
 
 
 # ---------------------------------------------------------------------------

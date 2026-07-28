@@ -6,6 +6,7 @@ from django.urls import path
 from django.utils.html import format_html
 from .admin_views import (
     moysklad_do_import,
+    moysklad_do_import_bulk,
     moysklad_do_link,
     moysklad_import_view,
     moysklad_link_view,
@@ -195,6 +196,11 @@ class ProductAdmin(admin.ModelAdmin):
                 "moysklad-import/do/",
                 self.admin_site.admin_view(moysklad_do_import),
                 name="catalog_product_moysklad_do_import",
+            ),
+            path(
+                "moysklad-import/do-bulk/",
+                self.admin_site.admin_view(moysklad_do_import_bulk),
+                name="catalog_product_moysklad_do_import_bulk",
             ),
             path(
                 "<int:object_id>/moysklad-link/",
