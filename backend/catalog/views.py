@@ -9,6 +9,7 @@ from django.conf import settings
 
 from django.utils import timezone
 
+from .images import process_product_image
 from .models import (
     Category,
     Product,
@@ -337,7 +338,7 @@ def product_images_api(request, pk):
     for f in files:
         img = ProductImage.objects.create(
             product=product,
-            image=f,
+            image=process_product_image(f.read(), f.name),
             color=color,
             alt_text=alt_text,
             is_primary=is_primary,

@@ -1,9 +1,9 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404, redirect, render
 
 from . import moysklad
+from .images import process_product_image
 from .models import Category, Product, ProductImage
 
 
@@ -78,7 +78,7 @@ def _import_product(moysklad_id, category, name, code, fallback_price_usd):
             continue
         ProductImage.objects.create(
             product=product,
-            image=ContentFile(content, name=f"{item_code}-{i}.jpg"),
+            image=process_product_image(content, f"{item_code}-{i}.jpg"),
             is_primary=(i == 0),
             sort_order=i,
         )
