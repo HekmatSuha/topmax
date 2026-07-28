@@ -58,10 +58,7 @@ def moysklad_webhook(request, secret):
         logger.warning("MoySklad webhook: invalid JSON body: %r", request.body[:500])
         return JsonResponse({"error": "Invalid JSON body."}, status=400)
 
-    events = payload.get("events", [])
-    logger.info("MoySklad webhook: received %d event(s).", len(events))
-
-    for event in events:
+    for event in payload.get("events", []):
         try:
             _handle_event(event)
         except moysklad.MoySkladError as exc:
@@ -79,34 +76,13 @@ def _handle_event(event):
     entity_type = meta.get("type")
     href = meta.get("href") or ""
     entity_id = moysklad.extract_entity_id(href)
-    logger.info(
-        "MoySklad webhook: event action=%s type=%s href=%s",
-        event.get("action"), entity_type, href,
-    )
     if not entity_id:
-        logger.warning("MoySklad webhook: could not extract an entity id from href=%r", href)
         return
 
     if entity_type == "product":
-        updated = sync_one_product(entity_id)
-        logger.info(
-            "MoySklad webhook: product %s -> %s",
-            entity_id, "updated" if updated else "no linked/changed product",
-        )
+        sync_one_product(entity_id)
         return
 
     if entity_type in STOCK_DOCUMENT_TYPES:
-        product_ids = moysklad.get_document_product_ids(entity_type, entity_id)
-        logger.info(
-            "MoySklad webhook: document %s/%s references %d product(s): %s",
-            entity_type, entity_id, len(product_ids), sorted(product_ids),
-        )
-        for product_id in product_ids:
-            updated = sync_one_product(product_id)
-            logger.info(
-                "MoySklad webhook: product %s -> %s",
-                product_id, "updated" if updated else "no linked/changed product",
-            )
-        return
-
-    logger.info("MoySklad webhook: ignoring unhandled entity type %r", entity_type)
+        for product_id in moysklad.get_document_product_ids(entity_type, entity_id):
+            sync_one_product(product_id)
