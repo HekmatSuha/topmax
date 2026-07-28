@@ -16,6 +16,7 @@ from catalog.views import (
     product_images_api,
     product_image_detail_api,
 )
+from catalog.webhook_views import moysklad_webhook
 
 def test_api(request):
     return JsonResponse({"message": "Successfully connected to Django backend!"})
@@ -34,6 +35,7 @@ urlpatterns = [
     path("api/products/<int:pk>/", product_detail_api),
     path("api/products/<int:pk>/images/", product_images_api),
     path("api/products/<int:pk>/images/<int:image_id>/", product_image_detail_api),
+    path("api/moysklad/webhook/<str:secret>/", moysklad_webhook),
 ]
 
 # Serve media files

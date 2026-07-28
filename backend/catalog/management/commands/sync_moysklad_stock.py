@@ -2,10 +2,16 @@ from django.core.management.base import BaseCommand
 
 from catalog import moysklad
 from catalog.models import Product
+from catalog.sync import apply_stock_and_price
 
 
 class Command(BaseCommand):
-    help = "Sync in_stock and wholesale_price_usd for every Product linked to MoySklad (moysklad_id set)."
+    help = (
+        "Sync in_stock and wholesale_price_usd for every Product linked to MoySklad "
+        "(moysklad_id set). This is now a fallback/reconciliation pass — day-to-day "
+        "changes push through instantly via the MoySklad webhook (see "
+        "setup_moysklad_webhooks and catalog/webhook_views.py)."
+    )
 
     def handle(self, *args, **options):
         products = list(Product.objects.exclude(moysklad_id__isnull=True).exclude(moysklad_id=""))
@@ -22,19 +28,7 @@ class Command(BaseCommand):
         to_update = []
         for product in products:
             qty, price = data_by_id.get(product.moysklad_id, (0, None))
-            fields = []
-
-            new_in_stock = qty > 0
-            if product.in_stock != new_in_stock:
-                product.in_stock = new_in_stock
-                fields.append("in_stock")
-
-            if price is not None:
-                new_price = round(price, 2)
-                if product.wholesale_price_usd != new_price:
-                    product.wholesale_price_usd = new_price
-                    fields.append("wholesale_price_usd")
-
+            fields = apply_stock_and_price(product, qty, price)
             if fields:
                 to_update.append((product, fields))
 

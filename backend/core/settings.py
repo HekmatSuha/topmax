@@ -72,6 +72,17 @@ CORS_ALLOW_CREDENTIALS = True
 # MoySklad integration token (see backend/.env). Kept server-side only.
 MOYSKLAD_TOKEN = os.environ.get("MOYSKLAD_TOKEN", "")
 
+# Public base URL of this site (e.g. https://yourdomain.com), used only to
+# build the webhook callback URL when registering webhooks with MoySklad —
+# see catalog/management/commands/setup_moysklad_webhooks.py.
+SITE_URL = os.environ.get("SITE_URL", "")
+
+# Random secret embedded in the webhook URL path (MoySklad doesn't sign
+# webhook payloads, so this is the only thing stopping randoms from POSTing
+# fake stock updates). Generate with:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+MOYSKLAD_WEBHOOK_SECRET = os.environ.get("MOYSKLAD_WEBHOOK_SECRET", "")
+
 ROOT_URLCONF = "core.urls"
 
 # Frontend dist directory (built React app)

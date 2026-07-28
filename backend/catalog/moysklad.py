@@ -7,10 +7,14 @@ leaves the server — the frontend/admin only ever talks to our own Django
 views, which call out to MoySklad on their behalf.
 """
 
+import re
+
 import requests
 from django.conf import settings
 
 BASE_URL = "https://api.moysklad.ru/api/remap/1.2"
+
+_ENTITY_ID_RE = re.compile(r"/entity/[a-z]+/([0-9a-f-]{36})")
 
 
 class MoySkladError(Exception):
@@ -33,6 +37,25 @@ def _get(path, params=None):
     if not resp.ok:
         raise MoySkladError(f"MoySklad GET {path} failed ({resp.status_code}): {resp.text[:300]}")
     return resp.json()
+
+
+def _post(path, json_body):
+    resp = requests.post(f"{BASE_URL}{path}", headers=_headers(), json=json_body, timeout=15)
+    if not resp.ok:
+        raise MoySkladError(f"MoySklad POST {path} failed ({resp.status_code}): {resp.text[:300]}")
+    return resp.json()
+
+
+def _delete(path):
+    resp = requests.delete(f"{BASE_URL}{path}", headers=_headers(), timeout=15)
+    if not resp.ok and resp.status_code != 404:
+        raise MoySkladError(f"MoySklad DELETE {path} failed ({resp.status_code}): {resp.text[:300]}")
+
+
+def extract_entity_id(href):
+    """Pull the UUID out of an /entity/<type>/<uuid> href. Returns None if it doesn't match."""
+    match = _ENTITY_ID_RE.search(href or "")
+    return match.group(1) if match else None
 
 
 def search_products(query, limit=20):
@@ -117,6 +140,43 @@ def get_stock_by_product_id(moysklad_id):
     """Current stock quantity for a single product, or None if not found."""
     stock, _ = get_stock_and_price_by_product_id(moysklad_id)
     return stock
+
+
+def get_document_product_ids(entity_type, entity_id):
+    """Return the set of MoySklad product ids referenced by a document's line items.
+
+    Used by the webhook handler: stock-affecting documents (demand, supply,
+    move, ...) don't say in their webhook event which products they touched,
+    so we fetch the document's positions and read each line's assortment id.
+    """
+    product_ids = set()
+    path = f"/entity/{entity_type}/{entity_id}/positions"
+    params = {"limit": 1000}
+    while True:
+        data = _get(path, params=params)
+        for row in data.get("rows", []):
+            href = ((row.get("assortment") or {}).get("meta") or {}).get("href", "")
+            product_id = extract_entity_id(href)
+            if product_id:
+                product_ids.add(product_id)
+        next_href = (data.get("meta") or {}).get("nextHref")
+        if not next_href:
+            break
+        path = next_href.replace(BASE_URL, "")
+        params = None
+    return product_ids
+
+
+def list_webhooks():
+    return _get("/entity/webhook").get("rows", [])
+
+
+def create_webhook(url, entity_type, action):
+    return _post("/entity/webhook", {"url": url, "action": action, "entityType": entity_type})
+
+
+def delete_webhook(webhook_id):
+    _delete(f"/entity/webhook/{webhook_id}")
 
 
 def get_all_stock_and_prices():
