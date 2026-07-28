@@ -72,6 +72,11 @@ CORS_ALLOW_CREDENTIALS = True
 # MoySklad integration token (see backend/.env). Kept server-side only.
 MOYSKLAD_TOKEN = os.environ.get("MOYSKLAD_TOKEN", "")
 
+# Comma-separated warehouse names (case-insensitive substring match) whose
+# stock should NOT count toward a product being "in stock" — e.g. a
+# warehouse that isn't available for online orders.
+MOYSKLAD_EXCLUDED_WAREHOUSES = os.environ.get("MOYSKLAD_EXCLUDED_WAREHOUSES", "")
+
 # Public base URL of this site (e.g. https://yourdomain.com), used only to
 # build the webhook callback URL when registering webhooks with MoySklad —
 # see catalog/management/commands/setup_moysklad_webhooks.py.

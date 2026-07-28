@@ -11,10 +11,13 @@ import re
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 
 BASE_URL = "https://api.moysklad.ru/api/remap/1.2"
 
 _ENTITY_ID_RE = re.compile(r"/entity/[a-z]+/([0-9a-f-]{36})")
+_EXCLUDED_STORE_CACHE_KEY = "moysklad:excluded_store_hrefs"
+_EXCLUDED_STORE_CACHE_TTL = 3600
 
 
 class MoySkladError(Exception):
@@ -72,8 +75,12 @@ def search_products(query, limit=20):
     stock_by_id = {}
     ids = [row["id"] for row in rows]
     if ids:
+        filter_parts = [";".join(f"id={pid}" for pid in ids)]
+        excluded = _excluded_store_filter()
+        if excluded:
+            filter_parts.append(excluded)
         stock_data = _get("/entity/assortment", params={
-            "filter": ";".join(f"id={pid}" for pid in ids),
+            "filter": ";".join(filter_parts),
             "stockMode": "all",
             "limit": len(ids),
         })
@@ -123,10 +130,67 @@ def _row_price(row):
     return sale_prices[0]["value"] / 100 if sale_prices else None
 
 
+def list_stores():
+    """Return every warehouse as [{"id", "name", "href"}, ...]."""
+    stores = []
+    path = "/entity/store"
+    params = {"limit": 1000}
+    while True:
+        data = _get(path, params=params)
+        for row in data.get("rows", []):
+            stores.append({
+                "id": row.get("id"),
+                "name": row.get("name", ""),
+                "href": (row.get("meta") or {}).get("href", ""),
+            })
+        next_href = (data.get("meta") or {}).get("nextHref")
+        if not next_href:
+            break
+        path = next_href.replace(BASE_URL, "")
+        params = None
+    return stores
+
+
+def _excluded_store_filter():
+    """Build a `stockStore!=<href>` filter fragment for every warehouse whose
+    name matches settings.MOYSKLAD_EXCLUDED_WAREHOUSES (comma-separated,
+    case-insensitive substring match), so stock totals leave those warehouses
+    out entirely. Returns "" if nothing is configured or nothing matched.
+
+    The resolved store hrefs are cached (warehouses rarely change) so this
+    doesn't cost an extra MoySklad request on every single sync.
+    """
+    names = [
+        n.strip().lower()
+        for n in getattr(settings, "MOYSKLAD_EXCLUDED_WAREHOUSES", "").split(",")
+        if n.strip()
+    ]
+    if not names:
+        return ""
+
+    hrefs = cache.get(_EXCLUDED_STORE_CACHE_KEY)
+    if hrefs is None:
+        hrefs = [
+            store["href"]
+            for store in list_stores()
+            if store["href"] and any(name in store["name"].lower() for name in names)
+        ]
+        cache.set(_EXCLUDED_STORE_CACHE_KEY, hrefs, _EXCLUDED_STORE_CACHE_TTL)
+
+    return ";".join(f"stockStore!={href}" for href in hrefs)
+
+
 def get_stock_and_price_by_product_id(moysklad_id):
-    """Return (stock_quantity, price) for a single product, or (None, None) if not found."""
+    """Return (stock_quantity, price) for a single product, or (None, None) if not found.
+
+    Stock excludes any warehouse configured in MOYSKLAD_EXCLUDED_WAREHOUSES.
+    """
+    filter_parts = [f"id={moysklad_id}"]
+    excluded = _excluded_store_filter()
+    if excluded:
+        filter_parts.append(excluded)
     data = _get("/entity/assortment", params={
-        "filter": f"id={moysklad_id}",
+        "filter": ";".join(filter_parts),
         "stockMode": "all",
         "limit": 1,
     })
@@ -182,11 +246,15 @@ def delete_webhook(webhook_id):
 def get_all_stock_and_prices():
     """Return {moysklad_product_id: (stock_quantity, price)} for every assortment row.
 
-    Paginates /entity/assortment (stockMode=all) via meta.nextHref.
+    Paginates /entity/assortment (stockMode=all) via meta.nextHref. Stock
+    excludes any warehouse configured in MOYSKLAD_EXCLUDED_WAREHOUSES.
     """
     data_by_id = {}
     path = "/entity/assortment"
     params = {"limit": 1000, "stockMode": "all"}
+    excluded = _excluded_store_filter()
+    if excluded:
+        params["filter"] = excluded
     while True:
         data = _get(path, params=params)
         for row in data.get("rows", []):
