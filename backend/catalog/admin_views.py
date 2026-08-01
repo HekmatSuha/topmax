@@ -270,9 +270,11 @@ def poster_view(request, object_id):
         "name": product.name,
         "categoryName": product.category.name,
         "price": product.price,
+        "wholesalePriceUsd": str(product.wholesale_price_usd) if product.wholesale_price_usd is not None else None,
         "discountPercent": discount_percent,
         "discountedPrice": discounted_price,
         "images": image_urls,
+        "availableColors": product.available_colors or [],
     }
 
     context = {

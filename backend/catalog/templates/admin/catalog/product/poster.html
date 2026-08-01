@@ -12,7 +12,11 @@
   .poster-preview { flex: 1 1 480px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
   .poster-field label { display: block; font-weight: 600; margin-bottom: 6px; }
   .poster-field select,
-  .poster-field input[type="text"] { width: 100%; padding: 6px 8px; box-sizing: border-box; }
+  .poster-field input[type="text"],
+  .poster-field input[type="number"] { width: 100%; padding: 6px 8px; box-sizing: border-box; }
+  .poster-field input[type="range"] { width: 100%; }
+  .field-row { display: flex; gap: 12px; }
+  .field-row > div { flex: 1; }
   .style-options { display: flex; gap: 10px; }
   .style-option { flex: 1; padding: 10px 8px; border: 2px solid #ccc; border-radius: 8px; cursor: pointer; text-align: center; font-size: 12px; font-weight: 600; background: #fff; }
   .style-option.active { border-color: #447e9b; background: #eaf2f6; }
@@ -25,6 +29,11 @@
   .poster-status { font-size: 12px; color: #666; min-height: 16px; }
   .checkbox-field { display: flex; align-items: center; gap: 8px; }
   .checkbox-field label { margin: 0; font-weight: 600; }
+  fieldset.poster-group { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 0; }
+  fieldset.poster-group legend { font-weight: 700; padding: 0 6px; }
+  fieldset.poster-group > .poster-field:not(:last-child) { margin-bottom: 12px; }
+  .slider-label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px; }
+  .slider-label span.value { font-weight: 400; color: #666; }
 </style>
 {% endblock %}
 
@@ -52,6 +61,23 @@
         <div class="thumb-row" id="thumb-row"></div>
       </div>
 
+      <fieldset class="poster-group">
+        <legend>Photo size &amp; position</legend>
+        <div class="poster-field">
+          <div class="slider-label"><span>Zoom</span><span class="value" id="zoom-value">1.0x</span></div>
+          <input type="range" id="poster-zoom" min="1" max="2.5" step="0.05" value="1">
+        </div>
+        <div class="poster-field">
+          <div class="slider-label"><span>Horizontal position</span></div>
+          <input type="range" id="poster-pan-x" min="-1" max="1" step="0.05" value="0">
+        </div>
+        <div class="poster-field">
+          <div class="slider-label"><span>Vertical position</span></div>
+          <input type="range" id="poster-pan-y" min="-1" max="1" step="0.05" value="0">
+        </div>
+        <button type="button" id="btn-reset-photo" class="button">Reset</button>
+      </fieldset>
+
       <div class="poster-field">
         <label for="poster-language">Text language</label>
         <select id="poster-language">
@@ -66,9 +92,42 @@
         <input type="text" id="poster-tagline" maxlength="40" placeholder="e.g. NEW ARRIVAL, LIMITED OFFER">
       </div>
 
-      <div class="poster-field checkbox-field">
-        <input type="checkbox" id="poster-discount">
-        <label for="poster-discount">Show discount / crossed-out price</label>
+      <fieldset class="poster-group">
+        <legend>Price</legend>
+        <div class="poster-field">
+          <label for="poster-price-source">Price source</label>
+          <select id="poster-price-source">
+            <option value="retail">Retail price</option>
+            <option value="wholesale">Wholesale price</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="poster-field">
+            <label for="poster-price">Price</label>
+            <input type="number" id="poster-price" step="1">
+          </div>
+          <div class="poster-field">
+            <label for="poster-currency">Currency</label>
+            <select id="poster-currency">
+              <option value="KZT">KZT</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+        <div class="poster-field checkbox-field">
+          <input type="checkbox" id="poster-discount">
+          <label for="poster-discount">Show original price (strikethrough)</label>
+        </div>
+        <div class="poster-field" id="original-price-field" style="display:none;">
+          <label for="poster-original-price">Original price</label>
+          <input type="number" id="poster-original-price" step="1">
+        </div>
+      </fieldset>
+
+      <div class="poster-field checkbox-field" id="colors-field">
+        <input type="checkbox" id="poster-colors">
+        <label for="poster-colors">Show available colors</label>
       </div>
 
       <div class="poster-actions">
@@ -95,13 +154,19 @@
   const statusEl = document.getElementById('poster-status');
 
   const firstNonEmptyLang = ['ru', 'en', 'kk'].find(l => (PRODUCT.name || {})[l]) || 'ru';
+  const hasDiscount = PRODUCT.discountPercent > 0 && PRODUCT.discountedPrice != null;
 
   const state = {
     style: 'minimal',
     imageIndex: 0,
     language: firstNonEmptyLang,
     tagline: '',
-    showDiscount: PRODUCT.discountPercent > 0,
+    price: hasDiscount ? PRODUCT.discountedPrice : PRODUCT.price,
+    originalPrice: hasDiscount ? PRODUCT.price : null,
+    currency: 'KZT',
+    showDiscount: hasDiscount,
+    showColors: (PRODUCT.availableColors || []).length > 0,
+    photo: { zoom: 1, offsetX: 0, offsetY: 0 },
   };
 
   // ---- font loading (canvas text only downloads a font once explicitly requested) ----
@@ -126,7 +191,7 @@
     return p;
   }
 
-  // ---- drawing helpers ----
+  // ---- generic drawing helpers ----
   function roundRectPath(c, x, y, w, h, r) {
     c.beginPath();
     c.moveTo(x + r, y);
@@ -141,20 +206,32 @@
     c.closePath();
   }
 
-  function drawCover(c, img, x, y, w, h) {
-    const scale = Math.max(w / img.width, h / img.height);
+  function drawCoverTransformed(c, img, x, y, w, h, transform) {
+    transform = transform || {};
+    const zoom = Math.min(Math.max(transform.zoom || 1, 1), 3);
+    const baseScale = Math.max(w / img.width, h / img.height);
+    const scale = baseScale * zoom;
     const sw = w / scale, sh = h / scale;
-    const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+    const maxOffX = Math.max(img.width - sw, 0);
+    const maxOffY = Math.max(img.height - sh, 0);
+    const fracX = ((transform.offsetX || 0) + 1) / 2;
+    const fracY = ((transform.offsetY || 0) + 1) / 2;
+    const sx = maxOffX * fracX;
+    const sy = maxOffY * fracY;
     c.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   }
 
-  function formatKzt(n) {
+  function formatPrice(amount, currency) {
+    const n = Number(amount);
+    if (!isFinite(n)) return '';
+    if (currency === 'USD') {
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
     return Math.round(n).toLocaleString('en-US') + ' KZT';
   }
 
-  function wrapText(c, text, x, y, maxWidth, lineHeight, maxLines) {
+  function measureLines(c, text, maxWidth, maxLines) {
     maxLines = maxLines || 3;
-    c.textBaseline = 'alphabetic';
     const words = (text || '').split(' ').filter(Boolean);
     let line = '';
     const lines = [];
@@ -168,21 +245,113 @@
       }
     }
     if (line) lines.push(line);
-    let out = lines;
-    if (out.length > maxLines) {
-      out = out.slice(0, maxLines);
-      out[maxLines - 1] = out[maxLines - 1].replace(/\s+\S*$/, '') + '…';
+    if (lines.length > maxLines) {
+      lines.length = maxLines;
+      lines[maxLines - 1] = lines[maxLines - 1].replace(/\s+\S*$/, '') + '…';
     }
-    out.forEach((l, i) => c.fillText(l, x, y + i * lineHeight));
-    return y + Math.max(out.length - 1, 0) * lineHeight + lineHeight;
+    return lines.length ? lines : [''];
+  }
+
+  function drawLines(c, lines, x, y, lineHeight) {
+    c.textBaseline = 'alphabetic';
+    lines.forEach((l, i) => c.fillText(l, x, y + i * lineHeight));
+    return y + Math.max(lines.length - 1, 0) * lineHeight + lineHeight;
+  }
+
+  // ---- color swatches ----
+  const COLOR_HEX = {
+    black: '#111111', white: '#f8fafc', grey: '#9ca3af', gray: '#9ca3af',
+    silver: '#c7ccd1', chrome: '#c9d1d9', gold: '#d4af37', 'rose-gold': '#b76e79',
+    rosegold: '#b76e79', bronze: '#8c5a3c', brown: '#6b4226', beige: '#e3d5b8',
+    red: '#dc2626', blue: '#2563eb', green: '#16a34a', yellow: '#eab308',
+    orange: '#f97316', pink: '#ec4899', purple: '#9333ea', navy: '#1e3a8a',
+    wood: '#a97142', wenge: '#4a3728', walnut: '#5c3a21', graphite: '#3f3f46',
+  };
+  const COLOR_LABELS = {
+    black: { en: 'Black', ru: 'Чёрный', kk: 'Қара' },
+    white: { en: 'White', ru: 'Белый', kk: 'Ақ' },
+    grey: { en: 'Grey', ru: 'Серый', kk: 'Сұр' },
+    gray: { en: 'Gray', ru: 'Серый', kk: 'Сұр' },
+    silver: { en: 'Silver', ru: 'Серебро', kk: 'Күміс' },
+    chrome: { en: 'Chrome', ru: 'Хром', kk: 'Хром' },
+    gold: { en: 'Gold', ru: 'Золото', kk: 'Алтын' },
+    'rose-gold': { en: 'Rose Gold', ru: 'Розовое золото', kk: 'Қызғылт алтын' },
+    bronze: { en: 'Bronze', ru: 'Бронза', kk: 'Қола' },
+    brown: { en: 'Brown', ru: 'Коричневый', kk: 'Қоңыр' },
+    beige: { en: 'Beige', ru: 'Бежевый', kk: 'Күлгін сары' },
+    red: { en: 'Red', ru: 'Красный', kk: 'Қызыл' },
+    blue: { en: 'Blue', ru: 'Синий', kk: 'Көк' },
+    green: { en: 'Green', ru: 'Зелёный', kk: 'Жасыл' },
+    yellow: { en: 'Yellow', ru: 'Жёлтый', kk: 'Сары' },
+    orange: { en: 'Orange', ru: 'Оранжевый', kk: 'Қызғылт сары' },
+    pink: { en: 'Pink', ru: 'Розовый', kk: 'Қызғылт' },
+    purple: { en: 'Purple', ru: 'Фиолетовый', kk: 'Күлгін' },
+    navy: { en: 'Navy', ru: 'Тёмно-синий', kk: 'Қою көк' },
+    wood: { en: 'Wood', ru: 'Дерево', kk: 'Ағаш' },
+  };
+
+  function colorHex(key) {
+    return COLOR_HEX[(key || '').toLowerCase()] || '#9ca3af';
+  }
+  function colorLabel(key, lang) {
+    const entry = COLOR_LABELS[(key || '').toLowerCase()];
+    if (entry) return entry[lang] || entry.en;
+    return key ? key.charAt(0).toUpperCase() + key.slice(1) : '';
+  }
+
+  function drawColorSwatches(c, colors, x, y, lang, opts) {
+    opts = opts || {};
+    const labelColor = opts.labelColor || '#0f172a';
+    const ringColor = opts.ringColor || 'rgba(15,23,42,0.2)';
+    const r = 26, gap = 26, maxShow = 6;
+    const shown = colors.slice(0, maxShow);
+    c.textAlign = 'center';
+    c.textBaseline = 'alphabetic';
+    shown.forEach((key, i) => {
+      const cx = x + r + i * (r * 2 + gap);
+      const cy = y + r;
+      c.beginPath();
+      c.arc(cx, cy, r, 0, Math.PI * 2);
+      c.fillStyle = colorHex(key);
+      c.fill();
+      c.lineWidth = 3;
+      c.strokeStyle = ringColor;
+      c.stroke();
+      c.font = '600 18px Poppins, sans-serif';
+      c.fillStyle = labelColor;
+      c.fillText(colorLabel(key, lang), cx, cy + r + 30);
+    });
+    if (colors.length > maxShow) {
+      const cx = x + r + maxShow * (r * 2 + gap);
+      c.font = '700 20px Poppins, sans-serif';
+      c.fillStyle = labelColor;
+      c.textAlign = 'left';
+      c.fillText(`+${colors.length - maxShow}`, cx - r, y + r + 6);
+    }
+    c.textAlign = 'left';
   }
 
   // ---- style: Minimal Modern (matches the storefront card look) ----
-  function drawMinimalModern(c, { img, name, category, tagline, showDiscount }) {
+  function drawMinimalModern(c, data) {
+    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, lang, transform } = data;
     c.fillStyle = '#f1f5f9';
     c.fillRect(0, 0, SIZE, SIZE);
 
-    const pad = 64, cardX = pad, cardY = pad, cardW = SIZE - pad * 2, cardH = 760;
+    const pad = 56;
+    const contentX = pad, contentW = SIZE - pad * 2;
+
+    c.font = '800 46px Poppins, sans-serif';
+    const nameLines = measureLines(c, name, contentW - 40, 2);
+
+    let blockH = 44;
+    if (category) blockH += 40;
+    blockH += nameLines.length * 54;
+    if (tagline) blockH += 38;
+    if (colors.length) blockH += 116;
+    const footerH = 60;
+
+    const cardX = pad, cardY = pad, cardW = contentW;
+    const cardH = Math.max(400, SIZE - pad - footerH - blockH - pad);
 
     c.save();
     c.shadowColor = 'rgba(15,23,42,0.15)';
@@ -197,90 +366,98 @@
     c.save();
     c.clip();
     if (img) {
-      drawCover(c, img, cardX, cardY, cardW, cardH);
+      drawCoverTransformed(c, img, cardX, cardY, cardW, cardH, transform);
     } else {
       c.fillStyle = '#e2e8f0';
       c.fillRect(cardX, cardY, cardW, cardH);
     }
-    const shade = c.createLinearGradient(0, cardY + cardH - 220, 0, cardY + cardH);
+    const shade = c.createLinearGradient(0, cardY + cardH - 200, 0, cardY + cardH);
     shade.addColorStop(0, 'rgba(15,23,42,0)');
-    shade.addColorStop(1, 'rgba(15,23,42,0.35)');
+    shade.addColorStop(1, 'rgba(15,23,42,0.32)');
     c.fillStyle = shade;
-    c.fillRect(cardX, cardY + cardH - 220, cardW, 220);
+    c.fillRect(cardX, cardY + cardH - 200, cardW, 200);
     c.restore();
 
-    const priceText = showDiscount && PRODUCT.discountedPrice != null ? formatKzt(PRODUCT.discountedPrice) : formatKzt(PRODUCT.price);
-    c.font = '800 56px Poppins, sans-serif';
-    c.textBaseline = 'middle';
-    const priceWidth = c.measureText(priceText).width;
-    const badgePadX = 28, badgeH = 82, badgeW = priceWidth + badgePadX * 2;
-    const badgeX = cardX + 32, badgeY = cardY + cardH - badgeH - 32;
-    c.fillStyle = '#fcd34d';
-    roundRectPath(c, badgeX, badgeY, badgeW, badgeH, 20);
-    c.fill();
-    c.fillStyle = '#0f172a';
-    c.fillText(priceText, badgeX + badgePadX, badgeY + badgeH / 2 + 2);
-
-    if (showDiscount && PRODUCT.discountedPrice != null) {
-      const origText = formatKzt(PRODUCT.price);
-      c.font = '700 30px Poppins, sans-serif';
-      const origWidth = c.measureText(origText).width;
-      const opadX = 16, oh = 46, ow = origWidth + opadX * 2;
-      const ox = badgeX, oy = badgeY - oh - 12;
-      c.fillStyle = 'rgba(255,255,255,0.9)';
-      roundRectPath(c, ox, oy, ow, oh, 12);
+    if (priceText) {
+      c.font = '800 52px Poppins, sans-serif';
+      c.textBaseline = 'middle';
+      const priceWidth = c.measureText(priceText).width;
+      const badgePadX = 26, badgeH = 76, badgeW = priceWidth + badgePadX * 2;
+      const badgeX = cardX + 30, badgeY = cardY + cardH - badgeH - 30;
+      c.fillStyle = '#fcd34d';
+      roundRectPath(c, badgeX, badgeY, badgeW, badgeH, 18);
       c.fill();
-      c.fillStyle = '#64748b';
-      c.fillText(origText, ox + opadX, oy + oh / 2 + 1);
-      c.strokeStyle = '#64748b';
-      c.lineWidth = 2;
-      c.beginPath();
-      c.moveTo(ox + opadX - 4, oy + oh / 2);
-      c.lineTo(ox + ow - opadX + 4, oy + oh / 2);
-      c.stroke();
+      c.fillStyle = '#0f172a';
+      c.fillText(priceText, badgeX + badgePadX, badgeY + badgeH / 2 + 2);
 
-      const discText = `-${PRODUCT.discountPercent}%`;
-      c.font = '800 40px Poppins, sans-serif';
-      const discWidth = c.measureText(discText).width;
-      const dw = discWidth + 48, dh = 70, dx = cardX + cardW - dw - 28, dy = cardY + 28;
-      c.fillStyle = '#ef4444';
-      roundRectPath(c, dx, dy, dw, dh, 18);
-      c.fill();
-      c.fillStyle = '#ffffff';
-      c.fillText(discText, dx + 24, dy + dh / 2 + 2);
+      if (originalText) {
+        c.font = '700 28px Poppins, sans-serif';
+        const origWidth = c.measureText(originalText).width;
+        const opadX = 14, oh = 42, ow = origWidth + opadX * 2;
+        const ox = badgeX, oy = badgeY - oh - 10;
+        c.fillStyle = 'rgba(255,255,255,0.9)';
+        roundRectPath(c, ox, oy, ow, oh, 12);
+        c.fill();
+        c.fillStyle = '#64748b';
+        c.fillText(originalText, ox + opadX, oy + oh / 2 + 1);
+        c.strokeStyle = '#64748b';
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(ox + opadX - 4, oy + oh / 2);
+        c.lineTo(ox + ow - opadX + 4, oy + oh / 2);
+        c.stroke();
+
+        if (discountPercent) {
+          const discText = `-${discountPercent}%`;
+          c.font = '800 38px Poppins, sans-serif';
+          const discWidth = c.measureText(discText).width;
+          const dw = discWidth + 44, dh = 64, dx = cardX + cardW - dw - 26, dy = cardY + 26;
+          c.fillStyle = '#ef4444';
+          roundRectPath(c, dx, dy, dw, dh, 16);
+          c.fill();
+          c.fillStyle = '#ffffff';
+          c.fillText(discText, dx + 22, dy + dh / 2 + 2);
+        }
+      }
     }
 
-    let y = cardY + cardH + 70;
+    let y = cardY + cardH + 44;
+    c.textBaseline = 'alphabetic';
     if (category) {
-      c.font = '700 28px Poppins, sans-serif';
+      c.font = '700 26px Poppins, sans-serif';
       c.fillStyle = '#f59e0b';
       c.letterSpacing = '3px';
-      c.fillText(category.toUpperCase(), cardX, y);
+      c.fillText(category.toUpperCase(), contentX, y);
       c.letterSpacing = '0px';
-      y += 54;
+      y += 40;
     }
 
-    c.font = '800 52px Poppins, sans-serif';
+    c.font = '800 46px Poppins, sans-serif';
     c.fillStyle = '#0f172a';
-    y = wrapText(c, name, cardX, y, cardW - 260, 60, 2);
+    y = drawLines(c, nameLines, contentX, y, 54);
 
     if (tagline) {
-      c.font = '600 30px Poppins, sans-serif';
+      c.font = '600 28px Poppins, sans-serif';
       c.fillStyle = '#475569';
-      c.textBaseline = 'alphabetic';
-      c.fillText(tagline, cardX, y + 34);
+      c.fillText(tagline, contentX, y + 30);
+      y += 38;
     }
 
-    c.font = '700 28px Poppins, sans-serif';
+    if (colors.length) {
+      drawColorSwatches(c, colors, contentX, y + 10, lang, { labelColor: '#0f172a', ringColor: 'rgba(15,23,42,0.15)' });
+    }
+
+    c.font = '700 26px Poppins, sans-serif';
     c.fillStyle = '#94a3b8';
-    c.textBaseline = 'alphabetic';
     c.textAlign = 'right';
-    c.fillText('topmax.kz', SIZE - pad, SIZE - 48);
+    c.fillText('topmax.kz', SIZE - pad, SIZE - 40);
     c.textAlign = 'left';
   }
 
   // ---- style: Bold Sale ----
-  function drawBoldSale(c, { img, name, category, tagline, showDiscount }) {
+  function drawBoldSale(c, data) {
+    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, lang, transform } = data;
+
     const bg = c.createLinearGradient(0, 0, SIZE, SIZE);
     bg.addColorStop(0, '#0f172a');
     bg.addColorStop(0.55, '#7c2d12');
@@ -303,7 +480,17 @@
     c.fillText('TOPMAX', 64, 100);
     c.letterSpacing = '0px';
 
-    const cardX = 64, cardY = 150, cardW = SIZE - 128, cardH = 620;
+    c.font = '800 54px Poppins, sans-serif';
+    const nameLines = measureLines(c, name, SIZE - 128, 2);
+    let contentH = nameLines.length * 62;
+    if (tagline) contentH += 46;
+    if (priceText) contentH += 112;
+    if (colors.length) contentH += 116;
+
+    const topMargin = 150, footerH = 60;
+    const cardY = topMargin, cardX = 64, cardW = SIZE - 128;
+    const cardH = Math.max(360, SIZE - topMargin - 70 - contentH - footerH - 40);
+
     c.save();
     c.shadowColor = 'rgba(0,0,0,0.35)';
     c.shadowBlur = 50;
@@ -317,63 +504,67 @@
     c.save();
     c.clip();
     if (img) {
-      drawCover(c, img, cardX + 14, cardY + 14, cardW - 28, cardH - 28);
+      drawCoverTransformed(c, img, cardX + 14, cardY + 14, cardW - 28, cardH - 28, transform);
     } else {
       c.fillStyle = '#e2e8f0';
       c.fillRect(cardX + 14, cardY + 14, cardW - 28, cardH - 28);
     }
     c.restore();
 
-    if (showDiscount && PRODUCT.discountedPrice != null) {
+    if (originalText && discountPercent) {
       c.save();
       c.translate(cardX + cardW - 90, cardY - 10);
       c.rotate(-0.35);
       c.fillStyle = '#ef4444';
       c.beginPath();
-      c.arc(0, 0, 90, 0, Math.PI * 2);
+      c.arc(0, 0, 84, 0, Math.PI * 2);
       c.fill();
       c.fillStyle = '#ffffff';
-      c.font = '800 40px Poppins, sans-serif';
+      c.font = '800 38px Poppins, sans-serif';
       c.textAlign = 'center';
       c.textBaseline = 'middle';
-      c.fillText(`-${PRODUCT.discountPercent}%`, 0, 0);
+      c.fillText(`-${discountPercent}%`, 0, 0);
       c.restore();
       c.textAlign = 'left';
     }
 
-    let y = cardY + cardH + 80;
-    c.font = '800 58px Poppins, sans-serif';
+    let y = cardY + cardH + 70;
+    c.font = '800 54px Poppins, sans-serif';
     c.fillStyle = '#ffffff';
-    y = wrapText(c, name, 64, y, SIZE - 128, 64, 2);
+    c.textBaseline = 'alphabetic';
+    y = drawLines(c, nameLines, 64, y, 62);
 
     if (tagline) {
-      c.font = '700 30px Poppins, sans-serif';
+      c.font = '700 28px Poppins, sans-serif';
       c.fillStyle = '#fde68a';
-      c.textBaseline = 'alphabetic';
-      c.fillText(tagline.toUpperCase(), 64, y + 6);
+      c.fillText(tagline.toUpperCase(), 64, y + 4);
       y += 46;
     }
 
-    const priceText = showDiscount && PRODUCT.discountedPrice != null ? formatKzt(PRODUCT.discountedPrice) : formatKzt(PRODUCT.price);
-    c.font = '900 76px Poppins, sans-serif';
-    c.fillStyle = '#fcd34d';
-    c.textBaseline = 'alphabetic';
-    const priceWidth = c.measureText(priceText).width;
-    c.fillText(priceText, 64, y + 90);
+    if (priceText) {
+      c.font = '900 70px Poppins, sans-serif';
+      c.fillStyle = '#fcd34d';
+      const priceWidth = c.measureText(priceText).width;
+      c.fillText(priceText, 64, y + 82);
 
-    if (showDiscount && PRODUCT.discountedPrice != null) {
-      const origText = formatKzt(PRODUCT.price);
-      c.font = '700 34px Poppins, sans-serif';
-      c.fillStyle = 'rgba(255,255,255,0.6)';
-      const ox = 64 + priceWidth + 28, oy = y + 90;
-      c.fillText(origText, ox, oy);
-      const origWidth = c.measureText(origText).width;
-      c.strokeStyle = 'rgba(255,255,255,0.6)';
-      c.lineWidth = 2;
-      c.beginPath();
-      c.moveTo(ox - 2, oy - 14);
-      c.lineTo(ox + origWidth + 2, oy - 14);
-      c.stroke();
+      if (originalText) {
+        c.font = '700 32px Poppins, sans-serif';
+        c.fillStyle = 'rgba(255,255,255,0.6)';
+        const ox = 64 + priceWidth + 26, oy = y + 82;
+        c.fillText(originalText, ox, oy);
+        const origWidth = c.measureText(originalText).width;
+        c.strokeStyle = 'rgba(255,255,255,0.6)';
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(ox - 2, oy - 13);
+        c.lineTo(ox + origWidth + 2, oy - 13);
+        c.stroke();
+      }
+      y += 112;
+    }
+
+    if (colors.length) {
+      drawColorSwatches(c, colors, 64, y, lang, { labelColor: '#fff7ed', ringColor: 'rgba(255,255,255,0.5)' });
     }
 
     c.font = '600 26px Poppins, sans-serif';
@@ -384,22 +575,18 @@
   }
 
   // ---- style: Dark Luxury ----
-  function drawDarkLuxury(c, { img, name, category, tagline, showDiscount }) {
+  function drawDarkLuxury(c, data) {
+    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, lang, transform } = data;
+
     c.fillStyle = '#0f172a';
     c.fillRect(0, 0, SIZE, SIZE);
-    if (img) drawCover(c, img, 0, 0, SIZE, SIZE);
+    if (img) drawCoverTransformed(c, img, 0, 0, SIZE, SIZE, transform);
 
     let g = c.createLinearGradient(0, 0, 0, 240);
     g.addColorStop(0, 'rgba(0,0,0,0.55)');
     g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g;
     c.fillRect(0, 0, SIZE, 240);
-
-    g = c.createLinearGradient(0, SIZE - 620, 0, SIZE);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,0,0.92)');
-    c.fillStyle = g;
-    c.fillRect(0, SIZE - 620, SIZE, 620);
 
     c.font = '700 32px Poppins, sans-serif';
     c.fillStyle = '#fbbf24';
@@ -408,59 +595,86 @@
     c.fillText('TOPMAX', 64, 90);
     c.letterSpacing = '0px';
 
-    let y = SIZE - 360;
+    c.font = '800 52px Poppins, sans-serif';
+    const nameLines = measureLines(c, name, SIZE - 128, 2);
+    let contentH = 0;
+    if (category) contentH += 46;
+    contentH += nameLines.length * 60;
+    if (tagline) contentH += 44;
+    contentH += 40;
+    if (priceText) contentH += 100;
+    if (discountPercent) contentH += 50;
+    if (colors.length) contentH += 116;
+
+    const bottomMargin = 56;
+    const gradientH = Math.min(SIZE - 200, contentH + 140);
+    const gy = c.createLinearGradient(0, SIZE - gradientH, 0, SIZE);
+    gy.addColorStop(0, 'rgba(0,0,0,0)');
+    gy.addColorStop(1, 'rgba(0,0,0,0.92)');
+    c.fillStyle = gy;
+    c.fillRect(0, SIZE - gradientH, SIZE, gradientH);
+
+    let y = SIZE - bottomMargin - contentH + 40;
+
     if (category) {
-      c.font = '700 26px Poppins, sans-serif';
+      c.font = '700 24px Poppins, sans-serif';
       c.fillStyle = '#fbbf24';
       c.letterSpacing = '3px';
       c.fillText(category.toUpperCase(), 64, y);
       c.letterSpacing = '0px';
-      y += 50;
+      y += 46;
     }
 
-    c.font = '800 56px Poppins, sans-serif';
+    c.font = '800 52px Poppins, sans-serif';
     c.fillStyle = '#ffffff';
-    y = wrapText(c, name, 64, y, SIZE - 128, 62, 2);
+    y = drawLines(c, nameLines, 64, y, 60);
 
     if (tagline) {
-      c.font = '600 28px Poppins, sans-serif';
+      c.font = '600 26px Poppins, sans-serif';
       c.fillStyle = 'rgba(255,255,255,0.75)';
-      c.textBaseline = 'alphabetic';
-      c.fillText(tagline, 64, y + 34);
-      y += 46;
+      c.fillText(tagline, 64, y + 30);
+      y += 44;
     }
 
     c.strokeStyle = 'rgba(251,191,36,0.6)';
     c.lineWidth = 2;
     c.beginPath();
-    c.moveTo(64, y + 30);
-    c.lineTo(184, y + 30);
+    c.moveTo(64, y + 20);
+    c.lineTo(184, y + 20);
     c.stroke();
+    y += 40;
 
-    const priceText = showDiscount && PRODUCT.discountedPrice != null ? formatKzt(PRODUCT.discountedPrice) : formatKzt(PRODUCT.price);
-    c.font = '900 72px Poppins, sans-serif';
-    c.fillStyle = '#fbbf24';
-    c.textBaseline = 'alphabetic';
-    const priceWidth = c.measureText(priceText).width;
-    c.fillText(priceText, 64, y + 100);
+    if (priceText) {
+      c.font = '900 66px Poppins, sans-serif';
+      c.fillStyle = '#fbbf24';
+      const priceWidth = c.measureText(priceText).width;
+      c.fillText(priceText, 64, y + 60);
 
-    if (showDiscount && PRODUCT.discountedPrice != null) {
-      const origText = formatKzt(PRODUCT.price);
-      c.font = '700 32px Poppins, sans-serif';
-      c.fillStyle = 'rgba(255,255,255,0.55)';
-      const ox = 64 + priceWidth + 26, oy = y + 100;
-      c.fillText(origText, ox, oy);
-      const origWidth = c.measureText(origText).width;
-      c.strokeStyle = 'rgba(255,255,255,0.55)';
-      c.lineWidth = 2;
-      c.beginPath();
-      c.moveTo(ox - 2, oy - 13);
-      c.lineTo(ox + origWidth + 2, oy - 13);
-      c.stroke();
+      if (originalText) {
+        c.font = '700 30px Poppins, sans-serif';
+        c.fillStyle = 'rgba(255,255,255,0.55)';
+        const ox = 64 + priceWidth + 24, oy = y + 60;
+        c.fillText(originalText, ox, oy);
+        const origWidth = c.measureText(originalText).width;
+        c.strokeStyle = 'rgba(255,255,255,0.55)';
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(ox - 2, oy - 12);
+        c.lineTo(ox + origWidth + 2, oy - 12);
+        c.stroke();
+      }
+      y += 60;
 
-      c.font = '800 30px Poppins, sans-serif';
-      c.fillStyle = '#ef4444';
-      c.fillText(`-${PRODUCT.discountPercent}%`, 64, y + 150);
+      if (discountPercent) {
+        c.font = '800 28px Poppins, sans-serif';
+        c.fillStyle = '#ef4444';
+        c.fillText(`-${discountPercent}%`, 64, y + 42);
+        y += 50;
+      }
+    }
+
+    if (colors.length) {
+      drawColorSwatches(c, colors, 64, y + 20, lang, { labelColor: '#f8fafc', ringColor: 'rgba(255,255,255,0.5)' });
     }
   }
 
@@ -472,7 +686,26 @@
     const img = await loadImage(url);
     const name = (PRODUCT.name || {})[state.language] || PRODUCT.name.en || PRODUCT.name.ru || PRODUCT.itemCode;
     const category = ((PRODUCT.categoryName || {})[state.language]) || (PRODUCT.categoryName || {}).en || '';
-    STYLE_DRAWERS[state.style](ctx, { img, name, category, tagline: state.tagline, showDiscount: state.showDiscount });
+
+    const priceNum = parseFloat(state.price);
+    const priceText = isFinite(priceNum) ? formatPrice(priceNum, state.currency) : '';
+
+    let originalText = null, discountPercent = null;
+    if (state.showDiscount) {
+      const originalNum = parseFloat(state.originalPrice);
+      if (isFinite(originalNum) && isFinite(priceNum) && originalNum > priceNum) {
+        originalText = formatPrice(originalNum, state.currency);
+        discountPercent = Math.round((1 - priceNum / originalNum) * 100);
+      }
+    }
+
+    const colors = state.showColors ? (PRODUCT.availableColors || []) : [];
+
+    STYLE_DRAWERS[state.style](ctx, {
+      img, name, category, tagline: state.tagline,
+      priceText, originalText, discountPercent,
+      colors, lang: state.language, transform: state.photo,
+    });
   }
 
   // ---- controls ----
@@ -504,6 +737,32 @@
     });
   }
 
+  const zoomInput = document.getElementById('poster-zoom');
+  const zoomValue = document.getElementById('zoom-value');
+  const panXInput = document.getElementById('poster-pan-x');
+  const panYInput = document.getElementById('poster-pan-y');
+  zoomInput.addEventListener('input', () => {
+    state.photo.zoom = parseFloat(zoomInput.value);
+    zoomValue.textContent = state.photo.zoom.toFixed(2) + 'x';
+    render();
+  });
+  panXInput.addEventListener('input', () => {
+    state.photo.offsetX = parseFloat(panXInput.value);
+    render();
+  });
+  panYInput.addEventListener('input', () => {
+    state.photo.offsetY = parseFloat(panYInput.value);
+    render();
+  });
+  document.getElementById('btn-reset-photo').addEventListener('click', () => {
+    state.photo = { zoom: 1, offsetX: 0, offsetY: 0 };
+    zoomInput.value = '1';
+    zoomValue.textContent = '1.00x';
+    panXInput.value = '0';
+    panYInput.value = '0';
+    render();
+  });
+
   const languageSelect = document.getElementById('poster-language');
   languageSelect.value = state.language;
   languageSelect.addEventListener('change', () => {
@@ -517,13 +776,75 @@
     render();
   });
 
+  // ---- price controls ----
+  const priceSourceSelect = document.getElementById('poster-price-source');
+  const priceInput = document.getElementById('poster-price');
+  const currencySelect = document.getElementById('poster-currency');
   const discountCheckbox = document.getElementById('poster-discount');
+  const originalPriceField = document.getElementById('original-price-field');
+  const originalPriceInput = document.getElementById('poster-original-price');
+
+  priceInput.value = state.price != null ? state.price : '';
+  currencySelect.value = state.currency;
+  priceSourceSelect.value = hasDiscount || PRODUCT.price != null ? 'retail' : 'custom';
   discountCheckbox.checked = state.showDiscount;
-  discountCheckbox.disabled = !PRODUCT.discountPercent;
-  discountCheckbox.addEventListener('change', () => {
-    state.showDiscount = discountCheckbox.checked;
+  originalPriceInput.value = state.originalPrice != null ? state.originalPrice : '';
+  originalPriceField.style.display = state.showDiscount ? '' : 'none';
+
+  priceSourceSelect.addEventListener('change', () => {
+    const source = priceSourceSelect.value;
+    if (source === 'retail') {
+      priceInput.value = PRODUCT.price != null ? PRODUCT.price : '';
+      currencySelect.value = 'KZT';
+    } else if (source === 'wholesale') {
+      if (PRODUCT.wholesalePriceUsd == null) {
+        statusEl.textContent = 'No wholesale price set for this product — enter one manually.';
+      } else {
+        priceInput.value = PRODUCT.wholesalePriceUsd;
+      }
+      currencySelect.value = 'USD';
+    }
+    state.price = priceInput.value;
+    state.currency = currencySelect.value;
     render();
   });
+
+  priceInput.addEventListener('input', () => {
+    state.price = priceInput.value;
+    render();
+  });
+  currencySelect.addEventListener('change', () => {
+    state.currency = currencySelect.value;
+    render();
+  });
+
+  discountCheckbox.addEventListener('change', () => {
+    state.showDiscount = discountCheckbox.checked;
+    originalPriceField.style.display = state.showDiscount ? '' : 'none';
+    if (state.showDiscount && !originalPriceInput.value) {
+      const base = parseFloat(priceInput.value) || 0;
+      originalPriceInput.value = base ? Math.round(base / 0.8) : '';
+      state.originalPrice = originalPriceInput.value;
+    }
+    render();
+  });
+  originalPriceInput.addEventListener('input', () => {
+    state.originalPrice = originalPriceInput.value;
+    render();
+  });
+
+  // ---- colors ----
+  const colorsField = document.getElementById('colors-field');
+  const colorsCheckbox = document.getElementById('poster-colors');
+  if (!(PRODUCT.availableColors || []).length) {
+    colorsField.style.display = 'none';
+  } else {
+    colorsCheckbox.checked = state.showColors;
+    colorsCheckbox.addEventListener('change', () => {
+      state.showColors = colorsCheckbox.checked;
+      render();
+    });
+  }
 
   function posterFilename() {
     return `topmax-${PRODUCT.itemCode}-poster.png`;
