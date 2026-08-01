@@ -21,6 +21,10 @@ def apply_stock_and_price(product, qty, price):
         product.in_stock = new_in_stock
         fields.append("in_stock")
 
+    if qty is not None and product.stock_quantity != qty:
+        product.stock_quantity = qty
+        fields.append("stock_quantity")
+
     if price is not None:
         new_price = round(price, 2)
         if product.wholesale_price_usd != new_price:

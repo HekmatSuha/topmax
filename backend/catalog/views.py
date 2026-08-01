@@ -98,6 +98,7 @@ def _product_payload(product, request=None):
         "discountPercent": 0,
         "discountedPrice": None,
         "inStock": product.in_stock,
+        "stockQuantity": product.stock_quantity if product.moysklad_id else None,
         "isNew": product.is_new,
         "imageUrls": uploaded_urls + legacy_urls if not uploaded_urls else uploaded_urls,
         "availableColors": product.available_colors,

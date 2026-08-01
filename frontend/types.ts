@@ -44,6 +44,7 @@ export interface Product {
   discountPercent: number;
   discountedPrice: number | null;
   inStock: boolean;
+  stockQuantity?: number | null;
   isNew: boolean;
   imageUrls: string[];
   availableColors?: string[];

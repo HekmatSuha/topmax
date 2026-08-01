@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from . import moysklad
 from .images import process_product_image
 from .models import Category, Product, ProductImage
+from .views import _resolve_image_url
 
 
 @staff_member_required
@@ -63,6 +64,7 @@ def _import_product(moysklad_id, category, name, code, fallback_price_usd):
         description={"en": "", "ru": "", "kk": ""},
         features={"en": [], "ru": [], "kk": []},
         in_stock=stock_qty > 0,
+        stock_quantity=stock_qty,
     )
 
     try:
@@ -225,6 +227,9 @@ def moysklad_do_link(request, object_id):
         stock_qty, price = moysklad.get_stock_and_price_by_product_id(moysklad_id)
         product.in_stock = (stock_qty or 0) > 0
         update_fields.append("in_stock")
+        if stock_qty is not None:
+            product.stock_quantity = stock_qty
+            update_fields.append("stock_quantity")
         if price is not None:
             product.wholesale_price_usd = round(price, 2)
             update_fields.append("wholesale_price_usd")
@@ -234,3 +239,47 @@ def moysklad_do_link(request, object_id):
 
     messages.success(request, f"Linked '{product.item_code}' to MoySklad — its stock and wholesale price will now stay in sync.")
     return redirect("admin:catalog_product_change", product.pk)
+
+
+# ---------------------------------------------------------------------------
+# Instagram poster generator — renders a shareable product poster (photo +
+# price) entirely client-side on a &lt;canvas&gt;. This view just hands the
+# product's data (price, discount, localized name, image URLs) to the
+# template; all drawing happens in poster.html's script.
+# ---------------------------------------------------------------------------
+
+@staff_member_required
+def poster_view(request, object_id):
+    from django.contrib import admin
+
+    product = get_object_or_404(Product, pk=object_id)
+
+    uploaded_images = list(product.images.all())
+    if uploaded_images:
+        image_urls = [img.image.url for img in uploaded_images]
+    else:
+        image_urls = [_resolve_image_url(u) for u in product.image_urls if u]
+
+    discount_percent = product.discount_percent or 0
+    discounted_price = (
+        round(product.price * (100 - discount_percent) / 100) if discount_percent else None
+    )
+
+    product_data = {
+        "itemCode": product.item_code,
+        "name": product.name,
+        "categoryName": product.category.name,
+        "price": product.price,
+        "discountPercent": discount_percent,
+        "discountedPrice": discounted_price,
+        "images": image_urls,
+    }
+
+    context = {
+        **admin.site.each_context(request),
+        "title": f"Create poster — {product.item_code}",
+        "product": product,
+        "product_data": product_data,
+        "opts": Product._meta,
+    }
+    return render(request, "admin/catalog/product/poster.html", context)

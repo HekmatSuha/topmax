@@ -10,6 +10,7 @@ from .admin_views import (
     moysklad_do_link,
     moysklad_import_view,
     moysklad_link_view,
+    poster_view,
 )
 from .models import Category, Product, ProductImage, WholesaleCustomer, WholesaleDevice, SiteSettings, default_warranty
 
@@ -177,13 +178,13 @@ class ProductImageInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
-    list_display = ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "in_stock", "is_new", "image_count", "moysklad_id", "updated_at")
+    list_display = ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "in_stock", "stock_quantity", "is_new", "image_count", "moysklad_id", "updated_at")
     search_fields = ("item_code", "category__slug", "moysklad_id")
     list_filter = ("category", "in_stock")
     inlines = [ProductImageInline]
     change_list_template = "admin/catalog/product/change_list.html"
     change_form_template = "admin/catalog/product/change_form.html"
-    readonly_fields = ("moysklad_id",)
+    readonly_fields = ("moysklad_id", "stock_quantity")
 
     def get_urls(self):
         custom = [
@@ -212,13 +213,18 @@ class ProductAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(moysklad_do_link),
                 name="catalog_product_moysklad_do_link",
             ),
+            path(
+                "<int:object_id>/poster/",
+                self.admin_site.admin_view(poster_view),
+                name="catalog_product_poster",
+            ),
         ]
         return custom + super().get_urls()
 
     fieldsets = (
         (None, {
-            "fields": ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "dimensions", "in_stock", "is_new", "moysklad_id"),
-            "description": "If moysklad_id is set, in_stock is overwritten automatically by the stock sync job — edit everything else freely.",
+            "fields": ("item_code", "category", "price", "wholesale_price_usd", "discount_percent", "dimensions", "in_stock", "stock_quantity", "is_new", "moysklad_id"),
+            "description": "If moysklad_id is set, in_stock and stock_quantity are overwritten automatically by the stock sync job — edit everything else freely.",
         }),
         ("Name", {
             "fields": ("name_en", "name_ru", "name_kk"),

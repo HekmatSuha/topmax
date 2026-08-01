@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.core.management.base import BaseCommand
 
 from catalog import moysklad
@@ -33,10 +35,11 @@ class Command(BaseCommand):
                 to_update.append((product, fields))
 
         # bulk_update requires the same field set per batch, so group by fields touched.
-        for fields in ({"in_stock"}, {"wholesale_price_usd"}, {"in_stock", "wholesale_price_usd"}):
-            batch = [p for p, f in to_update if set(f) == fields]
-            if batch:
-                Product.objects.bulk_update(batch, list(fields))
+        groups = defaultdict(list)
+        for product, fields in to_update:
+            groups[tuple(sorted(fields))].append(product)
+        for fields, batch in groups.items():
+            Product.objects.bulk_update(batch, list(fields))
 
         self.stdout.write(
             f"Checked {len(products)} linked product(s), updated {len(to_update)}."
