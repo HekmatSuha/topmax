@@ -318,16 +318,16 @@ const Basket: React.FC<BasketProps> = ({
       ].filter(Boolean).join(' ');
 
       return `
-        <tr>
-          <td class="center row-number">${index + 1}</td>
-          <td><span class="article">${escapeHtml(item.itemCode)}</span></td>
-          <td class="photo"><div class="photo-frame">${item.imageUrls[0] ? `<img src="${escapeHtml(item.imageUrls[0])}" alt="">` : ''}</div></td>
-          <td class="product-name">${escapeHtml(itemName)}</td>
-          <td class="center quantity">${item.quantity}</td>
-          <td class="center unit">${escapeHtml(labels.pcs)}</td>
-          <td class="money">${escapeHtml(printableUnitPrice)}</td>
-          <td class="money line-total">${escapeHtml(printableLineTotal)}</td>
-        </tr>`;
+        <div class="row">
+          <div class="cell center row-number">${index + 1}</div>
+          <div class="cell"><span class="article">${escapeHtml(item.itemCode)}</span></div>
+          <div class="cell photo"><div class="photo-frame">${item.imageUrls[0] ? `<img src="${escapeHtml(item.imageUrls[0])}" alt="">` : ''}</div></div>
+          <div class="cell product-name">${escapeHtml(itemName)}</div>
+          <div class="cell center quantity">${item.quantity}</div>
+          <div class="cell center unit">${escapeHtml(labels.pcs)}</div>
+          <div class="cell money">${escapeHtml(printableUnitPrice)}</div>
+          <div class="cell money line-total">${escapeHtml(printableLineTotal)}</div>
+        </div>`;
     }).join('');
 
     const iframe = document.createElement('iframe');
@@ -385,19 +385,22 @@ const Basket: React.FC<BasketProps> = ({
             .meta-label { display: block; margin-bottom: 4px; color: #6b7280; font-size: 8px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
             .meta-value { color: #111827; font-size: 11px; font-weight: 700; }
             .table-wrap { border: 1px solid #d1d5db; }
-            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            thead { color: #111827; background: #f3f4f6; }
-            th { padding: 10px 6px; border-bottom: 1px solid #d1d5db; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-align: left; text-transform: uppercase; }
-            td { height: 82px; padding: 8px 6px; border-top: 1px solid #e5e7eb; vertical-align: middle; overflow-wrap: anywhere; }
-            .center { text-align: center; }
+            .datagrid { width: 100%; }
+            .head-row, .row { display: grid; grid-template-columns: 5% 10% 12% 35% 7% 6% 12% 13%; align-items: center; }
+            .head-row { color: #111827; background: #f3f4f6; }
+            .head-row .cell { padding: 10px 6px; border-bottom: 1px solid #d1d5db; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+            .row { border-top: 1px solid #e5e7eb; break-inside: avoid; page-break-inside: avoid; }
+            .row .cell { display: flex; align-items: center; height: 82px; padding: 8px 6px; overflow-wrap: anywhere; }
+            .cell.center { justify-content: center; text-align: center; }
             .row-number { color: #9ca3af; font-weight: 700; }
             .article { font-size: 10px; font-weight: 700; color: #374151; }
             .photo-frame { display: flex; width: 64px; height: 64px; margin: auto; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e5e7eb; background: #fff; }
             .photo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+            .cell.photo { justify-content: center; }
             .product-name { color: #111827; font-size: 11px; font-weight: 600; line-height: 1.45; }
             .quantity { font-size: 13px; font-weight: 800; }
             .unit { color: #6b7280; }
-            .money { text-align: right; white-space: nowrap; font-weight: 600; }
+            .cell.money { justify-content: flex-end; text-align: right; white-space: nowrap; font-weight: 600; }
             .line-total { color: #111827; font-weight: 800; }
             .below-table { display: grid; grid-template-columns: 1fr 270px; gap: 24px; align-items: start; margin-top: 20px; }
             .customer { padding: 16px; border: 1px solid #d1d5db; }
@@ -415,7 +418,6 @@ const Basket: React.FC<BasketProps> = ({
             .grand-total .summary-value { font-size: 20px; font-weight: 900; }
             .footer { display: flex; justify-content: center; margin-top: 28px; padding-top: 14px; border-top: 1px solid #d1d5db; color: #9ca3af; font-size: 9px; }
             .footer strong { color: #4b5563; }
-            tr { break-inside: avoid; page-break-inside: avoid; }
           </style>
         </head>
         <body>
@@ -443,19 +445,15 @@ const Basket: React.FC<BasketProps> = ({
                 </div>
               </div>
               <div class="table-wrap">
-                <table>
-                  <colgroup>
-                    <col style="width:5%"><col style="width:10%"><col style="width:12%"><col style="width:35%">
-                    <col style="width:7%"><col style="width:6%"><col style="width:12%"><col style="width:13%">
-                  </colgroup>
-                  <thead><tr>
-                    <th class="center">${escapeHtml(labels.number)}</th><th>${escapeHtml(labels.article)}</th>
-                    <th>${escapeHtml(labels.photo)}</th><th>${escapeHtml(labels.name)}</th>
-                    <th class="center">${escapeHtml(labels.quantity)}</th><th class="center">${escapeHtml(labels.unit)}</th>
-                    <th class="money">${escapeHtml(labels.price)}</th><th class="money">${escapeHtml(labels.amount)}</th>
-                  </tr></thead>
-                  <tbody>${rows}</tbody>
-                </table>
+                <div class="datagrid">
+                  <div class="head-row">
+                    <div class="cell center">${escapeHtml(labels.number)}</div><div class="cell">${escapeHtml(labels.article)}</div>
+                    <div class="cell">${escapeHtml(labels.photo)}</div><div class="cell">${escapeHtml(labels.name)}</div>
+                    <div class="cell center">${escapeHtml(labels.quantity)}</div><div class="cell center">${escapeHtml(labels.unit)}</div>
+                    <div class="cell money">${escapeHtml(labels.price)}</div><div class="cell money">${escapeHtml(labels.amount)}</div>
+                  </div>
+                  ${rows}
+                </div>
               </div>
               <div class="below-table">
                 <div class="customer">

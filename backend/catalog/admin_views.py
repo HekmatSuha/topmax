@@ -261,9 +261,6 @@ def poster_view(request, object_id):
         image_urls = [_resolve_image_url(u) for u in product.image_urls if u]
 
     discount_percent = product.discount_percent or 0
-    discounted_price = (
-        round(product.price * (100 - discount_percent) / 100) if discount_percent else None
-    )
 
     product_data = {
         "itemCode": product.item_code,
@@ -272,9 +269,9 @@ def poster_view(request, object_id):
         "price": product.price,
         "wholesalePriceUsd": str(product.wholesale_price_usd) if product.wholesale_price_usd is not None else None,
         "discountPercent": discount_percent,
-        "discountedPrice": discounted_price,
         "images": image_urls,
         "availableColors": product.available_colors or [],
+        "dimensions": product.dimensions or "",
     }
 
     context = {

@@ -117,17 +117,25 @@
         </div>
         <div class="poster-field checkbox-field">
           <input type="checkbox" id="poster-discount">
-          <label for="poster-discount">Show original price (strikethrough)</label>
+          <label for="poster-discount">Show discount</label>
         </div>
-        <div class="poster-field" id="original-price-field" style="display:none;">
-          <label for="poster-original-price">Original price</label>
-          <input type="number" id="poster-original-price" step="1">
+        <div class="poster-field" id="discount-percent-field" style="display:none;">
+          <label for="poster-discount-percent">Discount %</label>
+          <input type="number" id="poster-discount-percent" min="1" max="95" step="1">
         </div>
       </fieldset>
 
       <div class="poster-field checkbox-field" id="colors-field">
         <input type="checkbox" id="poster-colors">
         <label for="poster-colors">Show available colors</label>
+      </div>
+
+      <div class="poster-field checkbox-field" id="size-field-toggle">
+        <input type="checkbox" id="poster-size-toggle">
+        <label for="poster-size-toggle">Show size / dimensions</label>
+      </div>
+      <div class="poster-field" id="size-text-field" style="display:none;">
+        <input type="text" id="poster-size" maxlength="40" placeholder="e.g. 120 x 60 x 2 cm">
       </div>
 
       <div class="poster-actions">
@@ -154,18 +162,20 @@
   const statusEl = document.getElementById('poster-status');
 
   const firstNonEmptyLang = ['ru', 'en', 'kk'].find(l => (PRODUCT.name || {})[l]) || 'ru';
-  const hasDiscount = PRODUCT.discountPercent > 0 && PRODUCT.discountedPrice != null;
+  const hasDiscount = PRODUCT.discountPercent > 0;
 
   const state = {
     style: 'minimal',
     imageIndex: 0,
     language: firstNonEmptyLang,
     tagline: '',
-    price: hasDiscount ? PRODUCT.discountedPrice : PRODUCT.price,
-    originalPrice: hasDiscount ? PRODUCT.price : null,
+    price: PRODUCT.price,
     currency: 'KZT',
     showDiscount: hasDiscount,
+    discountPercent: hasDiscount ? PRODUCT.discountPercent : 20,
     showColors: (PRODUCT.availableColors || []).length > 0,
+    showSize: Boolean(PRODUCT.dimensions),
+    sizeText: PRODUCT.dimensions || '',
     photo: { zoom: 1, offsetX: 0, offsetY: 0 },
   };
 
@@ -331,9 +341,32 @@
     c.textAlign = 'left';
   }
 
+  // ---- size / dimensions pill ----
+  function drawSizePill(c, text, x, y, opts) {
+    opts = opts || {};
+    const bg = opts.bg || 'rgba(15,23,42,0.06)';
+    const border = opts.border || 'rgba(15,23,42,0.18)';
+    const textColor = opts.textColor || '#334155';
+    const label = `Size: ${text}`;
+    c.font = '600 24px Poppins, sans-serif';
+    c.textBaseline = 'middle';
+    const tw = c.measureText(label).width;
+    const padX = 18, h = 44;
+    roundRectPath(c, x, y, tw + padX * 2, h, h / 2);
+    c.fillStyle = bg;
+    c.fill();
+    c.lineWidth = 1.5;
+    c.strokeStyle = border;
+    c.stroke();
+    c.fillStyle = textColor;
+    c.fillText(label, x + padX, y + h / 2 + 1);
+    c.textBaseline = 'alphabetic';
+    return h;
+  }
+
   // ---- style: Minimal Modern (matches the storefront card look) ----
   function drawMinimalModern(c, data) {
-    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, lang, transform } = data;
+    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, sizeText, lang, transform } = data;
     c.fillStyle = '#f1f5f9';
     c.fillRect(0, 0, SIZE, SIZE);
 
@@ -347,6 +380,7 @@
     if (category) blockH += 40;
     blockH += nameLines.length * 54;
     if (tagline) blockH += 38;
+    if (sizeText) blockH += 62;
     if (colors.length) blockH += 116;
     const footerH = 60;
 
@@ -443,6 +477,11 @@
       y += 38;
     }
 
+    if (sizeText) {
+      drawSizePill(c, sizeText, contentX, y, { bg: 'rgba(15,23,42,0.06)', border: 'rgba(15,23,42,0.18)', textColor: '#334155' });
+      y += 62;
+    }
+
     if (colors.length) {
       drawColorSwatches(c, colors, contentX, y + 10, lang, { labelColor: '#0f172a', ringColor: 'rgba(15,23,42,0.15)' });
     }
@@ -456,7 +495,7 @@
 
   // ---- style: Bold Sale ----
   function drawBoldSale(c, data) {
-    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, lang, transform } = data;
+    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, sizeText, lang, transform } = data;
 
     const bg = c.createLinearGradient(0, 0, SIZE, SIZE);
     bg.addColorStop(0, '#0f172a');
@@ -484,6 +523,7 @@
     const nameLines = measureLines(c, name, SIZE - 128, 2);
     let contentH = nameLines.length * 62;
     if (tagline) contentH += 46;
+    if (sizeText) contentH += 62;
     if (priceText) contentH += 112;
     if (colors.length) contentH += 116;
 
@@ -541,6 +581,11 @@
       y += 46;
     }
 
+    if (sizeText) {
+      drawSizePill(c, sizeText, 64, y, { bg: 'rgba(255,255,255,0.12)', border: 'rgba(255,255,255,0.4)', textColor: '#fff7ed' });
+      y += 62;
+    }
+
     if (priceText) {
       c.font = '900 70px Poppins, sans-serif';
       c.fillStyle = '#fcd34d';
@@ -576,7 +621,7 @@
 
   // ---- style: Dark Luxury ----
   function drawDarkLuxury(c, data) {
-    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, lang, transform } = data;
+    const { img, name, category, tagline, priceText, originalText, discountPercent, colors, sizeText, lang, transform } = data;
 
     c.fillStyle = '#0f172a';
     c.fillRect(0, 0, SIZE, SIZE);
@@ -601,6 +646,7 @@
     if (category) contentH += 46;
     contentH += nameLines.length * 60;
     if (tagline) contentH += 44;
+    if (sizeText) contentH += 62;
     contentH += 40;
     if (priceText) contentH += 100;
     if (discountPercent) contentH += 50;
@@ -634,6 +680,11 @@
       c.fillStyle = 'rgba(255,255,255,0.75)';
       c.fillText(tagline, 64, y + 30);
       y += 44;
+    }
+
+    if (sizeText) {
+      drawSizePill(c, sizeText, 64, y, { bg: 'rgba(255,255,255,0.1)', border: 'rgba(255,255,255,0.35)', textColor: '#f8fafc' });
+      y += 62;
     }
 
     c.strokeStyle = 'rgba(251,191,36,0.6)';
@@ -688,23 +739,27 @@
     const category = ((PRODUCT.categoryName || {})[state.language]) || (PRODUCT.categoryName || {}).en || '';
 
     const priceNum = parseFloat(state.price);
-    const priceText = isFinite(priceNum) ? formatPrice(priceNum, state.currency) : '';
 
-    let originalText = null, discountPercent = null;
-    if (state.showDiscount) {
-      const originalNum = parseFloat(state.originalPrice);
-      if (isFinite(originalNum) && isFinite(priceNum) && originalNum > priceNum) {
-        originalText = formatPrice(originalNum, state.currency);
-        discountPercent = Math.round((1 - priceNum / originalNum) * 100);
+    let priceText = '', originalText = null, discountPercent = null;
+    if (isFinite(priceNum)) {
+      const pct = state.showDiscount ? parseFloat(state.discountPercent) : NaN;
+      if (isFinite(pct) && pct > 0 && pct < 100) {
+        const saleNum = priceNum * (1 - pct / 100);
+        priceText = formatPrice(saleNum, state.currency);
+        originalText = formatPrice(priceNum, state.currency);
+        discountPercent = Math.round(pct);
+      } else {
+        priceText = formatPrice(priceNum, state.currency);
       }
     }
 
     const colors = state.showColors ? (PRODUCT.availableColors || []) : [];
+    const sizeText = state.showSize && state.sizeText ? state.sizeText : '';
 
     STYLE_DRAWERS[state.style](ctx, {
       img, name, category, tagline: state.tagline,
       priceText, originalText, discountPercent,
-      colors, lang: state.language, transform: state.photo,
+      colors, sizeText, lang: state.language, transform: state.photo,
     });
   }
 
@@ -781,15 +836,15 @@
   const priceInput = document.getElementById('poster-price');
   const currencySelect = document.getElementById('poster-currency');
   const discountCheckbox = document.getElementById('poster-discount');
-  const originalPriceField = document.getElementById('original-price-field');
-  const originalPriceInput = document.getElementById('poster-original-price');
+  const discountPercentField = document.getElementById('discount-percent-field');
+  const discountPercentInput = document.getElementById('poster-discount-percent');
 
   priceInput.value = state.price != null ? state.price : '';
   currencySelect.value = state.currency;
-  priceSourceSelect.value = hasDiscount || PRODUCT.price != null ? 'retail' : 'custom';
+  priceSourceSelect.value = 'retail';
   discountCheckbox.checked = state.showDiscount;
-  originalPriceInput.value = state.originalPrice != null ? state.originalPrice : '';
-  originalPriceField.style.display = state.showDiscount ? '' : 'none';
+  discountPercentInput.value = state.discountPercent || '';
+  discountPercentField.style.display = state.showDiscount ? '' : 'none';
 
   priceSourceSelect.addEventListener('change', () => {
     const source = priceSourceSelect.value;
@@ -820,16 +875,15 @@
 
   discountCheckbox.addEventListener('change', () => {
     state.showDiscount = discountCheckbox.checked;
-    originalPriceField.style.display = state.showDiscount ? '' : 'none';
-    if (state.showDiscount && !originalPriceInput.value) {
-      const base = parseFloat(priceInput.value) || 0;
-      originalPriceInput.value = base ? Math.round(base / 0.8) : '';
-      state.originalPrice = originalPriceInput.value;
+    discountPercentField.style.display = state.showDiscount ? '' : 'none';
+    if (state.showDiscount && !discountPercentInput.value) {
+      discountPercentInput.value = 20;
+      state.discountPercent = 20;
     }
     render();
   });
-  originalPriceInput.addEventListener('input', () => {
-    state.originalPrice = originalPriceInput.value;
+  discountPercentInput.addEventListener('input', () => {
+    state.discountPercent = discountPercentInput.value;
     render();
   });
 
@@ -845,6 +899,23 @@
       render();
     });
   }
+
+  // ---- size / dimensions ----
+  const sizeToggle = document.getElementById('poster-size-toggle');
+  const sizeTextField = document.getElementById('size-text-field');
+  const sizeInput = document.getElementById('poster-size');
+  sizeInput.value = state.sizeText;
+  sizeToggle.checked = state.showSize;
+  sizeTextField.style.display = state.showSize ? '' : 'none';
+  sizeToggle.addEventListener('change', () => {
+    state.showSize = sizeToggle.checked;
+    sizeTextField.style.display = state.showSize ? '' : 'none';
+    render();
+  });
+  sizeInput.addEventListener('input', () => {
+    state.sizeText = sizeInput.value.trim();
+    render();
+  });
 
   function posterFilename() {
     return `topmax-${PRODUCT.itemCode}-poster.png`;
