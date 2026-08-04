@@ -418,6 +418,7 @@ const Basket: React.FC<BasketProps> = ({
             .grand-total .summary-value { font-size: 20px; font-weight: 900; }
             .footer { display: flex; justify-content: center; margin-top: 28px; padding-top: 14px; border-top: 1px solid #d1d5db; color: #9ca3af; font-size: 9px; }
             .footer strong { color: #4b5563; }
+            .summary-block { break-inside: avoid; page-break-inside: avoid; }
           </style>
         </head>
         <body>
@@ -455,26 +456,28 @@ const Basket: React.FC<BasketProps> = ({
                   ${rows}
                 </div>
               </div>
-              <div class="below-table">
-                <div class="customer">
-                  <div class="section-label">${escapeHtml(labels.customer)}</div>
-                  <div class="customer-name">${escapeHtml(user.name)}</div>
-                  ${user.email ? `<div class="customer-email">${escapeHtml(user.email)}</div>` : ''}
-                  <div class="items-count">${escapeHtml(labels.totalQuantity)}: ${totalQuantity}</div>
-                </div>
-                <div class="summary">
-                  <div class="summary-row">
-                    <span class="summary-label">${escapeHtml(labels.totalQuantity)}</span>
-                    <span class="summary-value">${totalQuantity}</span>
+              <div class="summary-block">
+                <div class="below-table">
+                  <div class="customer">
+                    <div class="section-label">${escapeHtml(labels.customer)}</div>
+                    <div class="customer-name">${escapeHtml(user.name)}</div>
+                    ${user.email ? `<div class="customer-email">${escapeHtml(user.email)}</div>` : ''}
+                    <div class="items-count">${escapeHtml(labels.totalQuantity)}: ${totalQuantity}</div>
                   </div>
-                  <div class="summary-row grand-total">
-                    <span class="summary-label">${escapeHtml(labels.total)}</span>
-                    <span class="summary-value">${escapeHtml(total > 0 ? formatQuotePrice(total) : t.priceOnRequestShort[language])}</span>
+                  <div class="summary">
+                    <div class="summary-row">
+                      <span class="summary-label">${escapeHtml(labels.totalQuantity)}</span>
+                      <span class="summary-value">${totalQuantity}</span>
+                    </div>
+                    <div class="summary-row grand-total">
+                      <span class="summary-label">${escapeHtml(labels.total)}</span>
+                      <span class="summary-value">${escapeHtml(total > 0 ? formatQuotePrice(total) : t.priceOnRequestShort[language])}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="footer">
-                <span><strong>TOP MAX</strong> · topmax.kz</span>
+                <div class="footer">
+                  <span><strong>TOP MAX</strong> · topmax.kz</span>
+                </div>
               </div>
             </div>
           </div>
