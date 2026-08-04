@@ -509,6 +509,18 @@ const Basket: React.FC<BasketProps> = ({
       renderHost.style.background = '#ffffff';
       renderHost.setAttribute('aria-hidden', 'true');
       const invoiceElement = cloneWithComputedStyles(iframeInvoiceElement);
+      // cloneWithComputedStyles freezes every auto height as an inline px value.
+      // html2pdf's pagebreak plugin then injects spacer divs to push rows onto the
+      // next page, but frozen ancestors can't grow to absorb them, so the pushed
+      // rows overflow and collide with the summary block below the table. Let the
+      // flow containers size themselves again.
+      [
+        invoiceElement,
+        ...Array.from(invoiceElement.querySelectorAll<HTMLElement>('.content, .table-wrap, .datagrid')),
+      ].forEach(element => {
+        element.style.height = 'auto';
+        element.style.maxHeight = 'none';
+      });
       renderHost.appendChild(invoiceElement);
       document.body.appendChild(renderHost);
 
