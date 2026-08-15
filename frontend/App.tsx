@@ -958,6 +958,10 @@ const App: React.FC = () => {
 
   const categoryKeys: CategoryKey[] = ['All', ...categories.map(category => category.slug)];
   const categoryShowcase = useMemo(() => {
+    // The categories endpoint lands about a second before the product list, so
+    // its counts stand in until the products arrive and the real images (and
+    // exact counts) can be derived.
+    const apiCounts = new Map(categories.map(category => [category.slug, category.productCount]));
     return categoryKeys
       .filter(key => key !== 'All')
       .map(category => {
@@ -974,7 +978,9 @@ const App: React.FC = () => {
           category,
           imageUrl,
           hasProductImage: Boolean(product),
-          itemCount: categoryProducts.length,
+          itemCount: products.length > 0
+            ? categoryProducts.length
+            : apiCounts.get(category) ?? 0,
         };
       });
   }, [products, categories]);
@@ -1200,7 +1206,7 @@ const App: React.FC = () => {
             </div>
             )}
 
-            {filter === 'All' && !isProductsLoading && !productsError && (
+            {filter === 'All' && !productsError && categoryShowcase.length > 0 && (
               <section className="mb-8 sm:mb-10" aria-label={t.filterByCategory[language]}>
                 <div className="mb-4 flex items-end justify-between gap-4">
                   <h2 className="text-lg font-black text-slate-950 sm:text-2xl">

@@ -1,6 +1,7 @@
 import json
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Count
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -77,10 +78,20 @@ def _can_view_wholesale_prices(request):
         return False
 
 
-def _product_payload(product, request=None):
+def _show_normal_prices():
+    site_settings = SiteSettings.objects.first()
+    return site_settings.show_normal_prices if site_settings else False
+
+
+def _product_payload(product, request=None, *, can_view_wholesale=None, show_normal_prices=None):
+    # can_view_wholesale / show_normal_prices are the same for every product in
+    # a request, so list views compute them once and pass them in — otherwise
+    # each product costs two extra SiteSettings queries plus a device lookup.
     uploaded_images = list(product.images.all())
-    can_view_wholesale = _can_view_wholesale_prices(request)
-    show_normal_prices = SiteSettings.objects.first().show_normal_prices if SiteSettings.objects.exists() else False
+    if can_view_wholesale is None:
+        can_view_wholesale = _can_view_wholesale_prices(request)
+    if show_normal_prices is None:
+        show_normal_prices = _show_normal_prices()
 
     # Legacy URLs from the JSON field
     legacy_urls = [_resolve_image_url(u) for u in product.image_urls]
@@ -173,14 +184,16 @@ def _parse_json_body(request):
 
 @require_GET
 def categories_api(request):
-    categories = Category.objects.filter(is_active=True)
+    categories = Category.objects.filter(is_active=True).annotate(
+        product_count=Count("products")
+    )
     return JsonResponse({
         "categories": [
             {
                 "slug": category.slug,
                 "name": category.name,
                 "sortOrder": category.sort_order,
-                "productCount": category.products.count(),
+                "productCount": category.product_count,
             }
             for category in categories
         ]
@@ -197,8 +210,20 @@ def products_api(request):
     # --- LIST ---
     if request.method == "GET":
         products = Product.objects.select_related("category").prefetch_related("images").all()
+        can_view_wholesale = _can_view_wholesale_prices(request)
+        show_normal_prices = _show_normal_prices()
         return JsonResponse(
-            {"products": [_product_payload(p, request) for p in products]}
+            {
+                "products": [
+                    _product_payload(
+                        p,
+                        request,
+                        can_view_wholesale=can_view_wholesale,
+                        show_normal_prices=show_normal_prices,
+                    )
+                    for p in products
+                ]
+            }
         )
 
     # --- CREATE ---

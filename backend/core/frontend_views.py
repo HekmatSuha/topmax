@@ -19,6 +19,8 @@ from django.http import HttpResponse
 
 from catalog.models import Category, Product
 
+from . import og_image
+
 SITE_NAME = "TopMax Sanitary"
 
 
@@ -138,10 +140,27 @@ def share_preview(request):
 
     image_tag = ""
     if image:
-        image = _absolute_https(request, image)
+        # Prefer the normalized 1200x630 card: raw uploads are often too small
+        # or carry an alpha channel, and WhatsApp then shows no picture at all.
+        card = og_image.build(image)
+        if card:
+            image = _absolute_https(request, f"{settings.MEDIA_URL}{card}")
+            size_tags = (
+                f'<meta property="og:image:width" content="{og_image.WIDTH}">\n'
+                f'<meta property="og:image:height" content="{og_image.HEIGHT}">\n'
+                '<meta property="og:image:type" content="image/jpeg">\n'
+            )
+        else:
+            image = _absolute_https(request, image)
+            size_tags = ""
+        e_image = html.escape(image, quote=True)
         image_tag = (
-            f'<meta property="og:image" content="{html.escape(image, quote=True)}">\n'
+            f'<meta property="og:image" content="{e_image}">\n'
+            f'<meta property="og:image:secure_url" content="{e_image}">\n'
+            f"{size_tags}"
+            f'<meta property="og:image:alt" content="{html.escape(title, quote=True)}">\n'
             '<meta name="twitter:card" content="summary_large_image">\n'
+            f'<meta name="twitter:image" content="{e_image}">\n'
         )
 
     e_title = html.escape(title, quote=True)
@@ -156,6 +175,8 @@ def share_preview(request):
         f'<meta property="og:url" content="{e_target}">\n'
         f'<meta property="og:type" content="website">\n'
         f'<meta property="og:site_name" content="{SITE_NAME}">\n'
+        f'<meta name="twitter:title" content="{e_title}">\n'
+        f'<meta name="twitter:description" content="{e_description}">\n'
         f"{image_tag}"
         f'<meta http-equiv="refresh" content="0;url={e_target}">\n'
         "</head>\n<body>\n"
@@ -177,7 +198,8 @@ def spa_index(request, *args, **kwargs):
         if og["description"]:
             page = _set_meta(page, "og:description", og["description"])
         if og["image"]:
-            image_url = og["image"]
+            card = og_image.build(og["image"])
+            image_url = f"{settings.MEDIA_URL}{card}" if card else og["image"]
             if not image_url.startswith(("http://", "https://")):
                 image_url = request.build_absolute_uri(image_url)
             page = _set_meta(page, "og:image", image_url)
