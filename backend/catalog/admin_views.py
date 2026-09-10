@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404, redirect, render
@@ -5,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from . import moysklad
 from .images import process_product_image
 from .models import Category, Product, ProductImage
+from .sync import apply_stock_and_price
 from .views import _resolve_image_url
 
 
@@ -282,3 +285,42 @@ def poster_view(request, object_id):
         "opts": Product._meta,
     }
     return render(request, "admin/catalog/product/poster.html", context)
+
+
+# ---------------------------------------------------------------------------
+# Manual "Sync with MoySklad" button — re-runs the same stock/price
+# reconciliation as the sync_moysklad_stock management command, for every
+# already-linked product, right from the admin change list.
+# ---------------------------------------------------------------------------
+
+@staff_member_required
+def moysklad_sync_stock_view(request):
+    if request.method != "POST":
+        return redirect("admin:catalog_product_changelist")
+
+    products = list(Product.objects.exclude(moysklad_id__isnull=True).exclude(moysklad_id=""))
+    if not products:
+        messages.warning(request, "No products are linked to MoySklad yet — use \"Import from MoySklad\" or link one from its edit page first.")
+        return redirect("admin:catalog_product_changelist")
+
+    try:
+        data_by_id = moysklad.get_all_stock_and_prices()
+    except moysklad.MoySkladError as exc:
+        messages.error(request, f"MoySklad sync failed: {exc}")
+        return redirect("admin:catalog_product_changelist")
+
+    to_update = []
+    for product in products:
+        qty, price = data_by_id.get(product.moysklad_id, (0, None))
+        fields = apply_stock_and_price(product, qty, price)
+        if fields:
+            to_update.append((product, fields))
+
+    groups = defaultdict(list)
+    for product, fields in to_update:
+        groups[tuple(sorted(fields))].append(product)
+    for fields, batch in groups.items():
+        Product.objects.bulk_update(batch, list(fields))
+
+    messages.success(request, f"Checked {len(products)} linked product(s), updated {len(to_update)}.")
+    return redirect("admin:catalog_product_changelist")

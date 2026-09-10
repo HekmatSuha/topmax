@@ -2,6 +2,12 @@
 
 {% block object-tools-items %}
 <li>
+  <form action="{% url 'admin:catalog_product_moysklad_sync_stock' %}" method="post" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" class="button" style="cursor:pointer;">Sync stock with MoySklad</button>
+  </form>
+</li>
+<li>
   <a href="{% url 'admin:catalog_product_moysklad_import' %}" class="addlink">Import from MoySklad</a>
 </li>
 {{ block.super }}

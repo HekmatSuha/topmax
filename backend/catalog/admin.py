@@ -10,6 +10,7 @@ from .admin_views import (
     moysklad_do_link,
     moysklad_import_view,
     moysklad_link_view,
+    moysklad_sync_stock_view,
     poster_view,
 )
 from .models import Category, Product, ProductImage, WholesaleCustomer, WholesaleDevice, SiteSettings, default_warranty
@@ -202,6 +203,11 @@ class ProductAdmin(admin.ModelAdmin):
                 "moysklad-import/do-bulk/",
                 self.admin_site.admin_view(moysklad_do_import_bulk),
                 name="catalog_product_moysklad_do_import_bulk",
+            ),
+            path(
+                "moysklad-sync-stock/",
+                self.admin_site.admin_view(moysklad_sync_stock_view),
+                name="catalog_product_moysklad_sync_stock",
             ),
             path(
                 "<int:object_id>/moysklad-link/",
