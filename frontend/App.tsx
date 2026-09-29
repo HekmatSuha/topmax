@@ -1536,7 +1536,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
               <div className="relative flex min-h-[420px] flex-col justify-center border-r border-slate-100 bg-slate-50 p-4 sm:p-6 lg:p-8">
                  <div
-                   className="flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 lg:min-h-[520px] select-none"
+                   className="relative flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 lg:min-h-[520px] select-none"
                    onTouchStart={e => { if (!showVideo) touchStartX.current = e.touches[0].clientX; }}
                    onTouchEnd={e => {
                      if (showVideo) return;
@@ -1578,6 +1578,11 @@ const App: React.FC = () => {
                        decoding="async"
                        className="h-full max-h-[520px] w-full object-contain p-3 transition-all duration-500 sm:p-5"
                      />
+                   )}
+                   {!showVideo && selectedProduct.inStock === false && (
+                     <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white shadow-md sm:left-5 sm:top-5 sm:px-4 sm:py-2 sm:text-xs">
+                       {t.outOfStock[language]}
+                     </div>
                    )}
                  </div>
 
