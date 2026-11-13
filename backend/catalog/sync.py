@@ -16,6 +16,12 @@ def apply_stock_and_price(product, qty, price):
     """
     fields = []
 
+    # MoySklad reports stock as a float and allows it to go negative (selling
+    # more than is on hand). stock_quantity is a PositiveIntegerField, so a
+    # negative value violates the DB check constraint and crashes the save.
+    if qty is not None:
+        qty = max(0, int(qty))
+
     new_in_stock = (qty or 0) > 0
     if product.in_stock != new_in_stock:
         product.in_stock = new_in_stock

@@ -36,21 +36,30 @@ def _headers():
 
 
 def _get(path, params=None):
-    resp = requests.get(f"{BASE_URL}{path}", headers=_headers(), params=params, timeout=15)
+    try:
+        resp = requests.get(f"{BASE_URL}{path}", headers=_headers(), params=params, timeout=15)
+    except requests.RequestException as exc:
+        raise MoySkladError(f"MoySklad GET {path} failed: {exc}") from exc
     if not resp.ok:
         raise MoySkladError(f"MoySklad GET {path} failed ({resp.status_code}): {resp.text[:300]}")
     return resp.json()
 
 
 def _post(path, json_body):
-    resp = requests.post(f"{BASE_URL}{path}", headers=_headers(), json=json_body, timeout=15)
+    try:
+        resp = requests.post(f"{BASE_URL}{path}", headers=_headers(), json=json_body, timeout=15)
+    except requests.RequestException as exc:
+        raise MoySkladError(f"MoySklad POST {path} failed: {exc}") from exc
     if not resp.ok:
         raise MoySkladError(f"MoySklad POST {path} failed ({resp.status_code}): {resp.text[:300]}")
     return resp.json()
 
 
 def _delete(path):
-    resp = requests.delete(f"{BASE_URL}{path}", headers=_headers(), timeout=15)
+    try:
+        resp = requests.delete(f"{BASE_URL}{path}", headers=_headers(), timeout=15)
+    except requests.RequestException as exc:
+        raise MoySkladError(f"MoySklad DELETE {path} failed: {exc}") from exc
     if not resp.ok and resp.status_code != 404:
         raise MoySkladError(f"MoySklad DELETE {path} failed ({resp.status_code}): {resp.text[:300]}")
 
