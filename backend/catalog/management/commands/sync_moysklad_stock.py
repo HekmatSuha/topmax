@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from catalog import moysklad
 from catalog.models import Product
@@ -24,8 +24,8 @@ class Command(BaseCommand):
         try:
             data_by_id = moysklad.get_all_stock_and_prices()
         except moysklad.MoySkladError as exc:
-            self.stderr.write(f"MoySklad sync failed: {exc}")
-            return
+            # Non-zero exit so the daily systemd timer records the run as failed.
+            raise CommandError(f"MoySklad sync failed: {exc}") from exc
 
         to_update = []
         for product in products:

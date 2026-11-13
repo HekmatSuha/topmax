@@ -1,0 +1,10 @@
+[Unit]
+Description=TopMax daily full MoySklad stock/price sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/topmax/backend
+ExecStart=/var/www/topmax/backend/venv/bin/python manage.py sync_moysklad_stock
+TimeoutStartSec=15min

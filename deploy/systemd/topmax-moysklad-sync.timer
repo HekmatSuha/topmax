@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the TopMax full MoySklad sync once a day
+
+[Timer]
+# 03:00 Almaty time, a quiet hour for the shop.
+OnCalendar=*-*-* 03:00:00 Asia/Almaty
+# If the server was off at 03:00, run as soon as it boots.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
